@@ -1,0 +1,46 @@
+#! /usr/bin/env stap
+
+global ifxmit, ifrecv
+global ifmerged
+
+probe netdev.transmit
+{
+  ifxmit[pid(), dev_name, execname(), ppid(), ctime(gettimeofday_s())] <<< length
+}
+
+probe netdev.receive
+{
+  ifrecv[pid(), dev_name, execname(), ppid(), ctime(gettimeofday_s())] <<< length
+}
+
+function print_activity()
+{
+  #printf("%5s %5s %-7s %7s %7s %7s %7s %-15s\n","PID", "UID", "DEV", "XMIT_PK", "RECV_PK","XMIT_KB", "RECV_KB", "COMMAND")
+
+  foreach ([pid, dev, exec, ppid, ctime] in ifrecv) {
+	  ifmerged[pid, dev, exec, ppid, ctime] += @count(ifrecv[pid,dev,exec,ppid,ctime]);
+  }
+  foreach ([pid, dev, exec, ppid, ctime] in ifxmit) {
+	  ifmerged[pid, dev, exec, ppid, ctime] += @count(ifxmit[pid,dev,exec,ppid,ctime]);
+  }
+  foreach ([pid, dev, exec, ppid, ctime] in ifmerged-) {
+    n_xmit = @count(ifxmit[pid, dev, exec, ppid, ctime])
+    n_recv = @count(ifrecv[pid, dev, exec, ppid, ctime])
+    printf("%5d %5d %-7s %7d %7d %10db %10db %-15s %s\n",
+           pid, ppid, dev, n_xmit, n_recv,
+           n_xmit ? @sum(ifxmit[pid, dev, exec, ppid, ctime]) : 0,
+           n_recv ? @sum(ifrecv[pid, dev, exec, ppid, ctime]) : 0,
+           exec, ctime)
+  }
+
+  print("\n")
+
+  delete ifxmit
+  delete ifrecv
+  delete ifmerged
+}
+
+probe timer.ms(5000), end, error
+{
+  print_activity()
+}
