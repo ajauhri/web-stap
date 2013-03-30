@@ -1,16 +1,17 @@
-#! /usr/bin/env stap
+#! /usr/bin/env stap 
 
 global ifxmit, ifrecv
 global ifmerged
 
+# Data dump format: [process id | parent process id | device name | #packets sent | #packets received | amount of data sent | amount of data received | executable of target process | time in sec since epoch  
 probe netdev.transmit
 {
-  ifxmit[pid(), dev_name, execname(), ppid(), ctime(gettimeofday_s())] <<< length
+  ifxmit[pid(), dev_name, execname(), ppid(), gettimeofday_s()] <<< length
 }
 
 probe netdev.receive
 {
-  ifrecv[pid(), dev_name, execname(), ppid(), ctime(gettimeofday_s())] <<< length
+  ifrecv[pid(), dev_name, execname(), ppid(), gettimeofday_s()] <<< length
 }
 
 function print_activity()
@@ -26,7 +27,7 @@ function print_activity()
   foreach ([pid, dev, exec, ppid, ctime] in ifmerged-) {
     n_xmit = @count(ifxmit[pid, dev, exec, ppid, ctime])
     n_recv = @count(ifrecv[pid, dev, exec, ppid, ctime])
-    printf("%5d %5d %-7s %7d %7d %10db %10db %-15s %s\n",
+    printf("%5d %5d %-7s %7d %7d %10db %10db %-15s %lu\n",
            pid, ppid, dev, n_xmit, n_recv,
            n_xmit ? @sum(ifxmit[pid, dev, exec, ppid, ctime]) : 0,
            n_recv ? @sum(ifrecv[pid, dev, exec, ppid, ctime]) : 0,
