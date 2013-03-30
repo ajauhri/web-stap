@@ -22,7 +22,7 @@ def main():
   os.system('mkdir -p output')
 
   for i, site in enumerate(sites[:MAX_SITES]):
-    os.system('rm -f output/%s*')
+    os.system('rm -f output/%s*' % site)
     site_full = 'http://' + site
     print "[%d of %d] Loading site: %s" % (i+1, MAX_SITES, site_full)
     browser = webdriver.Firefox() # Get local session of firefox
@@ -30,8 +30,8 @@ def main():
     tstart = time()
     pStap = Popen('%s > output/%s.stap.csv' % (MEASURING_SCRIPT, site), \
         stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
-    pConn = Popen(r'watch -n .5 "echo `date +%s.%N`,`netstat -an ' + \
-        '| grep ESTABLISHED | wc -l` > output/%s.conn.csv"' % site, \
+    pConn = Popen(r'watch -n .5 "netstat -an ' + \
+        '| grep ESTABLISHED | wc -l >> output/%s.conn.csv"' % site, \
         stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
     browser.get(site_full) # Load page
     tend = time()
@@ -40,6 +40,8 @@ def main():
     browser.close()
 
     kill((pConn, pStap))
+    # hacky, but the above doesn't work
+    os.system('killall watch')
 
   print "Terminated successfully!"
 
@@ -50,5 +52,6 @@ def kill(procs):
       os.killpg(p.pid, signal.SIGTERM)
     except OSError: pass
     p.wait()
+
 main()
 
