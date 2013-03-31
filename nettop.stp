@@ -34,8 +34,6 @@ function print_activity()
            exec, ctime)
   }
 
-  print("\n")
-
   delete ifxmit
   delete ifrecv
   delete ifmerged
@@ -45,3 +43,4 @@ probe timer.ms(500), end, error
 {
   print_activity()
 }
+

@@ -3,18 +3,17 @@ import subprocess
 from subprocess import Popen
 import os
 import signal
-from time import time
+from time import time,sleep
 
 from selenium import webdriver
 
-SITES_LIST = 'data/top-100-sites.txt'
+SITES_LIST = 'data/top-10-sites.txt'
 MEASURING_SCRIPT = './nettop.stp'
-MAX_SITES = 1
-SECONDS_PER_SITE = 15
-MAX_TIMEOUT = 20000 # milliseconds
+MAX_SITES = 10
+SECONDS_PER_SITE = 60
 
 def main():
-  if os.getuid() != 1000:
+  if os.getuid() != 0:
     raise Exception('Not running as root')
 
   sites = open(SITES_LIST, 'r').read().split('\n')
@@ -30,13 +29,14 @@ def main():
     tstart = time()
     pStap = Popen('%s > output/%s.stap.csv' % (MEASURING_SCRIPT, site), \
         stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
-    pConn = Popen(r'watch -n .5 "netstat -an ' + \
+    pConn = Popen(r'watch -n .5 "date; netstat -an ' + \
         '| grep ESTABLISHED | wc -l >> output/%s.conn.csv"' % site, \
         stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
     browser.get(site_full) # Load page
     tend = time()
     
     print "Page load time: %.2f seconds" % (tend - tstart)
+    sleep(SECONDS_PER_SITE)
     browser.close()
 
     kill((pConn, pStap))
