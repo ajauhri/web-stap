@@ -40,7 +40,8 @@ function print_activity()
   delete ifmerged
 }
 
-probe timer.ms(1000), end, error
+probe timer.ms(500), end, error
 {
   print_activity()
 }
+

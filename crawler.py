@@ -1,31 +1,57 @@
-import subprocess 
+#!/usr/bin/python
+import subprocess
+from subprocess import Popen
 import os
-from time import time
+import signal
+from time import time,sleep
 
 from selenium import webdriver
 
-SITES_LIST = 'data/top-100-sites.txt'
+SITES_LIST = 'data/top-10-sites.txt'
 MEASURING_SCRIPT = './nettop.stp'
-MAX_SITES = 1
-SECONDS_PER_SITE = 15
-MAX_TIMEOUT = 20000 # milliseconds
+MAX_SITES = 10
+SECONDS_PER_SITE = 60
 
-sites = open(SITES_LIST, 'r').read().split('\n')
+def main():
+  if os.getuid() != 0:
+    raise Exception('Not running as root')
 
-os.system('mkdir -p output')
+  sites = open(SITES_LIST, 'r').read().split('\n')
 
-for i, site in enumerate(sites[:MAX_SITES]):
-  site_full = 'http://' + site
-  print "[%d of %d] Loading site: %s" % (i+1, MAX_SITES, site_full)
-  browser = webdriver.Firefox() # Get local session of firefox
+  os.system('mkdir -p output')
 
-  tstart = time()
-  pStap = Popen('%s > output/%s.stap.csv' % (MEASURING_SCRIPT, site), shell=True)
-  pConn = Popen('watch -n .5 "echo `date +%F-%T.%N`,`netstat -an ' \
-      '| grep ESTABLISHED | wc -l` > output/%s.conn.csv"' % site, shell=True)
-  browser.get(site_full) # Load page
-  tend = time()
-  
-  print "Page load time: %.2f seconds" % (tend - tstart)
-  browser.close()
+  for i, site in enumerate(sites[:MAX_SITES]):
+    os.system('rm -f output/%s*' % site)
+    site_full = 'http://' + site
+    print "[%d of %d] Loading site: %s" % (i+1, MAX_SITES, site_full)
+    browser = webdriver.Firefox() # Get local session of firefox
+
+    tstart = time()
+    pStap = Popen('%s > output/%s.stap.csv' % (MEASURING_SCRIPT, site), \
+        stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+    pConn = Popen(r'watch -n .5 "date; netstat -an ' + \
+        '| grep ESTABLISHED | wc -l >> output/%s.conn.csv"' % site, \
+        stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+    browser.get(site_full) # Load page
+    tend = time()
+    
+    print "Page load time: %.2f seconds" % (tend - tstart)
+    sleep(SECONDS_PER_SITE)
+    browser.close()
+
+    kill((pConn, pStap))
+    # hacky, but the above doesn't work
+    os.system('killall watch')
+
+  print "Terminated successfully!"
+
+def kill(procs):
+  for p in procs:
+    p.terminate()
+    try:
+      os.killpg(p.pid, signal.SIGTERM)
+    except OSError: pass
+    p.wait()
+
+main()
 
