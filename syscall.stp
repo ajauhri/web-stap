@@ -16,6 +16,6 @@ function print_syscalls () {
   delete syscalls_count
 }
 
-probe timer.s(5) {
+probe timer.s(1) {
   print_syscalls()
 }
