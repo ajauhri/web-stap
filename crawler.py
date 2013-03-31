@@ -7,24 +7,25 @@ from time import time,sleep
 
 from selenium import webdriver
 
-SITES_LIST = 'data/top-10-sites.txt'
+SITES_LIST = 'data/top-100-sites.txt'
 MEASURING_SCRIPT1 = './nettop.stp'
 MEASURING_SCRIPT2 = './syscall.stp'
 MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Build/GRI40) ' + \
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
-MAX_SITES = 1
-SECONDS_PER_SITE = 1
+SECONDS_PER_SITE = 150
+maxSites = 100
 
 def main():
   if os.getuid() != 0:
     raise Exception('Not running as root')
 
   sites = open(SITES_LIST, 'r').read().split('\n')
+  maxSites = min(maxSites, len(sites))
 
   os.system('mkdir -p output')
-  for i, site in enumerate(sites[:MAX_SITES]):
+  for i, site in enumerate(sites[:maxSites]):
     site_full = 'http://' + site
-    print "[%d of %d] Loading site: %s" % (i+1, MAX_SITES, site_full)
+    print "[%d of %d] Loading site: %s" % (i+1, maxSites, site_full)
     for mobile in False, True:
       print 'Trying %s user agent...' % ('mobile' if mobile else 'default')
       profile = webdriver.FirefoxProfile()
