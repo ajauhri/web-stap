@@ -13,7 +13,7 @@ MEASURING_SCRIPT2 = './syscall.stp'
 MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Build/GRI40) ' + \
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 MAX_SITES = 1
-SECONDS_PER_SITE = 150
+SECONDS_PER_SITE = 1
 
 def main():
   if os.getuid() != 0:
@@ -22,11 +22,11 @@ def main():
   sites = open(SITES_LIST, 'r').read().split('\n')
 
   os.system('mkdir -p output')
-  for mobile in True, False:
-    for i, site in enumerate(sites[:MAX_SITES]):
-      os.system('rm -f output/%s*' % site)
-      site_full = 'http://' + site
-      print "[%d of %d] Loading site: %s" % (i+1, MAX_SITES, site_full)
+  for i, site in enumerate(sites[:MAX_SITES]):
+    site_full = 'http://' + site
+    print "[%d of %d] Loading site: %s" % (i+1, MAX_SITES, site_full)
+    for mobile in False, True:
+      print 'Trying %s user agent...' % ('mobile' if mobile else 'default')
       profile = webdriver.FirefoxProfile()
       if mobile:
         profile.set_preference("general.useragent.override", MOBILE_UA)
@@ -46,7 +46,7 @@ def main():
       tend = time()
       
       loadTime = tend - tstart
-      open('output/%s.loadtime', 'w').write(str(loadTime))
+      open('output/%s.loadtime.csv' % site, 'w').write(str(loadTime))
       print "Page load time: %.2f seconds" % loadTime
       sleep(SECONDS_PER_SITE)
       browser.close()
@@ -54,8 +54,10 @@ def main():
       kill((pConn, pStap1, pStap2))
       # hacky, but the above doesn't work
       os.system('killall watch')
+      # since the files are getting somewhat large, ~3-5MB, compress them
+      os.system('bzip2 --best output/*.csv')
 
-    print "Terminated successfully!"
+  print "Terminated successfully!"
 
 def kill(procs):
   for p in procs:
