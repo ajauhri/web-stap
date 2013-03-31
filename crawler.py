@@ -47,7 +47,7 @@ def main():
       tend = time()
       
       loadTime = tend - tstart
-      open('output/%s.loadtime.csv' % site, 'w').write(str(loadTime))
+      open('output/%s-loadtime.csv' % site, 'w').write(str(loadTime))
       print "Page load time: %.2f seconds" % loadTime
       sleep(SECONDS_PER_SITE)
       browser.close()
