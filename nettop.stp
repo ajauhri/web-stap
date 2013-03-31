@@ -1,9 +1,10 @@
 #! /usr/bin/env stap 
+# nettop.stp : network usage for different processes
+# output format: [process id | parent process id | device name | #packets sent | #packets received | amount of data sent | amount of data received | executable of target process | time in sec since epoch  
 
 global ifxmit, ifrecv
 global ifmerged
 
-# Data dump format: [process id | parent process id | device name | #packets sent | #packets received | amount of data sent | amount of data received | executable of target process | time in sec since epoch  
 probe netdev.transmit
 {
   ifxmit[pid(), dev_name, execname(), ppid(), gettimeofday_s()] <<< length
@@ -33,8 +34,6 @@ function print_activity()
            n_recv ? @sum(ifrecv[pid, dev, exec, ppid, ctime]) : 0,
            exec, ctime)
   }
-
-  print("\n")
 
   delete ifxmit
   delete ifrecv
