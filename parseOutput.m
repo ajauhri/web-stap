@@ -65,7 +65,7 @@ end
 plot(allConns)
 legend(sites)
 
-%%
+%% boxplots
 subplot(2,1,1)
 boxplot(allConns')
 ylabel('Connections')
@@ -76,10 +76,12 @@ ylabel('Connections')
 title('Mobile UA')
 
 %% means
-plot(mean(allConns, 2), 'b')
+plot((1:250)/2,mean(allConns, 2), 'b')
 hold all
-plot(mean(allConnsM, 2), 'b--')
+plot((1:250)/2,mean(allConnsM, 2), 'b--')
 legend('Desktop UA', 'Mobile UA')
+ylabel('Mean connections')
+xlabel('Time (seconds)')
 
 %% barplot
 bar([mean(allConns); mean(allConnsM)]')
@@ -98,13 +100,20 @@ xlabel('Peak connections')
 
 %% image-style
 subplot(2,1,1)
-imagesc(allConns)
+imagesc(allConns, [0 50])
 ylabel('Time')
 title('Desktop UA')
 subplot(2,1,2)
-imagesc(allConnsM)
+imagesc(allConnsM, [0 50])
 ylabel('Time')
 title('Mobile UA')
+%% single site
+plot((1:250)/2, allConns(:,15))
+hold all
+plot((1:250)/2, allConnsM(:,15),'--')
+legend('Desktop UA', 'Mobile UA')
+ylabel('Number of Connections')
+xlabel('Time (seconds)')
 
 %%
 set(gcf,'PaperPositionMode','auto')
