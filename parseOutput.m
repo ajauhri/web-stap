@@ -44,6 +44,17 @@ for i=1:length(sites)
        fprintf('Skipping %s\n', sites{i});
       continue 
    end
+   
+   % get syscall types:
+   % bzcat output/google.com-stap-syscalls.csv.bz2 | grep -i firefox  | sed -e 's/
+% \s\+/ /g' | cut -d' ' -f5 | sort | uniq
+   
+%    bzcat output/google.com-stap-packets.csv.bz2 | sed -e 's/\s\+/ /g' | sed 's/[
+% ^0-9][a-zA-Z] [a-zA-Z]//g' | sed 's/ #//g' | cut -d' ' -f7,8,10
+   % for parsing syscalls
+   % bzcat output/google.com-stap-syscalls.csv.bz2 | grep -i firefox | grep
+   % futex | sed -e 's/\s\+/ /g' | cut -d' ' -f 4,6
+   
    allConns = [allConns conns(1:250)];
    allConnsM = [allConnsM connsM(1:250)];
    allLoadtimes = [allLoadtimes; loadtime];
