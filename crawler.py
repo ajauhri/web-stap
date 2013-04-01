@@ -50,11 +50,11 @@ def main():
       open('output/%s-loadtime.csv' % site, 'w').write(str(loadTime))
       print "Page load time: %.2f seconds" % loadTime
       sleep(SECONDS_PER_SITE)
-      browser.close()
 
       kill((pConn, pStap1, pStap2))
       # hacky, but the above doesn't work
       os.system('killall watch')
+      browser.close()
       # since the files are getting somewhat large, ~3-5MB, compress them
       os.system('bzip2 output/*.csv')
 
