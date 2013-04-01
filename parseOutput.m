@@ -17,7 +17,7 @@ for i=1:length(sites)
    fname = sprintf('output/%s-conns.csv.bz2', sites{i});
    if ~exist(fname, 'file')
        fprintf('Skipping %s\n', sites{i});
-       break
+       continue
    end
    fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
    
@@ -40,6 +40,10 @@ for i=1:length(sites)
    assert(status == 0);
    loadtimeM = str2num(out);
    
+   if length(conns) < 250 || length(connsM) < 250
+       fprintf('Skipping %s\n', sites{i});
+      continue 
+   end
    allConns = [allConns conns(1:250)];
    allConnsM = [allConnsM connsM(1:250)];
    allLoadtimes = [allLoadtimes; loadtime];
@@ -66,15 +70,20 @@ hold all
 plot(mean(allConnsM, 2), 'b--')
 legend('Desktop UA', 'Mobile UA')
 
+%% barplot
+bar([mean(allConns); mean(allConnsM)]')
+ylabel('Mean connections')
+xlabel('Site index')
+
 %% histogram
 subplot(2,1,1)
-hist([mean(allConns, 2) mean(allConnsM, 2)], 20)
+hist([mean(allConns)' mean(allConnsM)'], 20)
 legend('Desktop UA', 'Mobile UA')
-ylabel('Mean connections')
+xlabel('Mean connections')
 subplot(2,1,2)
-hist([max(allConns, [], 2) max(allConnsM, [], 2)], 20)
+hist([max(allConns)' max(allConnsM)'], 20)
 legend('Desktop UA', 'Mobile UA')
-ylabel('Peak connections')
+xlabel('Peak connections')
 
 %% image-style
 subplot(2,1,1)
