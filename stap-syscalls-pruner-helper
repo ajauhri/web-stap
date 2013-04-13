@@ -1,0 +1,11 @@
+#!/bin/bash
+for i in ./output/*
+do
+    if (echo $i | grep syscalls.csv); then
+        # get the process id of the crawler.py 
+        pid=$(bzcat $i | grep firefox | head -n 1 | cut -d'~' -f3)
+        # print the only the last three fields i.e. time~syscall~frequency~
+        bzcat $i | grep -v crawler.py | sed -n -e "s/^.*~$pid~//p" | grep . > $i.tmp
+    fi
+done
+
