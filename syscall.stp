@@ -11,7 +11,7 @@ probe syscall.* {
 
 function print_syscalls () {
   foreach ([exec, pid, ppid, ctime, name] in syscalls_count-) {
-    printf("%-15s %5d %5d %lu %25s %10d \n", exec, pid, ppid, ctime, name, syscalls_count[exec, pid, ppid, ctime, name]) 
+    printf("%s~%d~%d~%lu~%s~%d~\n", exec, pid, ppid, ctime, name, syscalls_count[exec, pid, ppid, ctime, name]) 
   }
   delete syscalls_count
 }

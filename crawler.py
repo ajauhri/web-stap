@@ -23,7 +23,7 @@ def main():
   maxSites = min(MAX_SITES, len(sites))
 
   os.system('mkdir -p output')
-  for i, site in enumerate(sites[:maxSites]):
+  for i, site in enumerate(sites[45:maxSites]):
     site_full = 'http://' + site
     print "[%d of %d] Loading site: %s" % (i+1, maxSites, site_full)
     for mobile in False, True:

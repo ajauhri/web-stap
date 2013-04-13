@@ -1,6 +1,6 @@
 #! /usr/bin/env stap 
 # nettop.stp : network usage for different processes
-# output format: [process id | parent process id | device name | #packets sent | #packets received | amount of data sent | amount of data received | executable of target process | time in sec since epoch  
+# output format: [process id | parent process id | device name | #packets sent | #packets received | amount of data sent (bytes) | amount of data received (bytes) | executable of target process | time in sec since epoch  
 
 global ifxmit, ifrecv
 global ifmerged
@@ -28,7 +28,7 @@ function print_activity()
   foreach ([pid, dev, exec, ppid, ctime] in ifmerged-) {
     n_xmit = @count(ifxmit[pid, dev, exec, ppid, ctime])
     n_recv = @count(ifrecv[pid, dev, exec, ppid, ctime])
-    printf("%5d %5d %-7s %7d %7d %10db %10db %-15s %lu\n",
+    printf("%d~%d~%s~%d~%d~%d~%d~%s~%lu~\n",
            pid, ppid, dev, n_xmit, n_recv,
            n_xmit ? @sum(ifxmit[pid, dev, exec, ppid, ctime]) : 0,
            n_recv ? @sum(ifrecv[pid, dev, exec, ppid, ctime]) : 0,
