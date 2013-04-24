@@ -39,8 +39,8 @@ def main():
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       pStap2 = Popen('%s > output/%s-stap-syscalls.csv' % (MEASURING_SCRIPT2, site), \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
-      pConn = Popen(r'watch -n .5 "netstat -an ' + \
-          '| grep ESTABLISHED | wc -l >> output/%s-conns.csv"' % site, \
+      pConn = Popen('watch -n .2 "bash measure-connections.sh >> ' \
+          'output/%s-conns.csv"' % site, \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       browser.get(site_full) # Load page
       
