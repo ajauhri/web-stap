@@ -1,10 +1,10 @@
 #!/usr/bin/python
 import subprocess
-from subprocess import Popen
 import os
 import signal
 from time import time,sleep
-
+from subprocess import Popen
+from collections import OrderedDict
 from selenium import webdriver
 
 SITES_LIST = 'data/top-100-sites.txt'
@@ -23,7 +23,7 @@ def main():
   maxSites = min(MAX_SITES, len(sites))
 
   os.system('mkdir -p output')
-  for i, site in enumerate(sites[45:maxSites]):
+  for i, site in enumerate(sites[:maxSites]):
     site_full = 'http://' + site
     print "[%d of %d] Loading site: %s" % (i+1, maxSites, site_full)
     for mobile in False, True:
@@ -35,7 +35,6 @@ def main():
       browser = webdriver.Firefox(profile)
       sleep(1)
 
-      tstart = time()
       pStap1 = Popen('%s > output/%s-stap-packets.csv' % (MEASURING_SCRIPT1, site), \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       pStap2 = Popen('%s > output/%s-stap-syscalls.csv' % (MEASURING_SCRIPT2, site), \
@@ -44,20 +43,28 @@ def main():
           '| grep ESTABLISHED | wc -l >> output/%s-conns.csv"' % site, \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       browser.get(site_full) # Load page
-      tend = time()
       
-      loadTime = tend - tstart
-      open('output/%s-loadtime.csv' % site, 'w').write(str(loadTime))
-      print "Page load time: %.2f seconds" % loadTime
       sleep(SECONDS_PER_SITE)
+      timing = browser.execute_script("return performance.timing")
+      timing = OrderedDict( 
+        timeConnect = timing['connectEnd'] - timing['connectStart'],
+        timeDomLoad = timing['domComplete'] - timing['domLoading'],
+        timeDns = timing['domainLookupEnd'] - timing['domainLookupStart'],
+        timeRedirect = timing['redirectEnd'] - timing['redirectStart'],
+        timeResponse = timing['responseEnd'] - timing['responseStart']
+      )
+      print "Page load timers:"
+      for i in timing: print ' * %s: %dms' % (i, timing[i])
+      with open('output/%s-loadtime.csv' % site, 'w') as f:
+        f.write(','.join(str(i) for i in timing.values()))
 
       kill((pConn, pStap1, pStap2))
-      # hacky, but the above doesn't work
+      # hacky, but the above doesn't work sometimes
       os.system('killall watch')
       browser.close()
       # since the files are getting somewhat large, ~3-5MB, compress them
-      os.system('bzip2 output/*.csv')
-
+      os.system('bzip2 -f output/*.csv')
+    print
   print "Terminated successfully!"
 
 def kill(procs):
