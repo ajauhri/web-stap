@@ -8,8 +8,8 @@ from time import time,sleep
 from selenium import webdriver
 
 SITES_LIST = 'data/top-100-sites.txt'
-MEASURING_SCRIPT1 = './nettop.stp'
-MEASURING_SCRIPT2 = './syscall.stp'
+MEASURING_SCRIPT1 = 'stap nettop.stp -G parent_id='
+MEASURING_SCRIPT2 = 'stap syscall.stp -G parent_id='
 MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Build/GRI40) ' + \
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
@@ -18,12 +18,12 @@ MAX_SITES = 100
 def main():
   if os.getuid() != 0:
     raise Exception('Not running as root')
-
+    
   sites = open(SITES_LIST, 'r').read().split('\n')
   maxSites = min(MAX_SITES, len(sites))
 
-  os.system('mkdir -p output')
-  for i, site in enumerate(sites[45:maxSites]):
+  os.system('mkdir -p outpu')
+  for i, site in enumerate(sites[1:maxSites]):
     site_full = 'http://' + site
     print "[%d of %d] Loading site: %s" % (i+1, maxSites, site_full)
     for mobile in False, True:
@@ -36,18 +36,18 @@ def main():
       sleep(1)
 
       tstart = time()
-      pStap1 = Popen('%s > output/%s-stap-packets.csv' % (MEASURING_SCRIPT1, site), \
+      pStap1 = Popen('%s%s > outpu/%s-stap-packets.csv' % (MEASURING_SCRIPT1, str(os.getpid()), site), \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
-      pStap2 = Popen('%s > output/%s-stap-syscalls.csv' % (MEASURING_SCRIPT2, site), \
+      pStap2 = Popen('%s%s > outpu/%s-stap-syscalls.csv' % (MEASURING_SCRIPT2, str(os.getpid()), site), \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       pConn = Popen(r'watch -n .5 "netstat -an ' + \
-          '| grep ESTABLISHED | wc -l >> output/%s-conns.csv"' % site, \
+          '| grep ESTABLISHED | wc -l >> outpu/%s-conns.csv"' % site, \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       browser.get(site_full) # Load page
       tend = time()
       
       loadTime = tend - tstart
-      open('output/%s-loadtime.csv' % site, 'w').write(str(loadTime))
+      open('outpu/%s-loadtime.csv' % site, 'w').write(str(loadTime))
       print "Page load time: %.2f seconds" % loadTime
       sleep(SECONDS_PER_SITE)
 
@@ -56,7 +56,7 @@ def main():
       os.system('killall watch')
       browser.close()
       # since the files are getting somewhat large, ~3-5MB, compress them
-      os.system('bzip2 output/*.csv')
+      os.system('bzip2 outpu/*.csv')
 
   print "Terminated successfully!"
 
