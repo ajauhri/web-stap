@@ -1,15 +1,14 @@
 #!/usr/bin/python
 import subprocess
-from subprocess import Popen
 import os
 import signal
 from time import time,sleep
-
+from subprocess import Popen
+from collections import OrderedDict
 from selenium import webdriver
 
 SITES_LIST = 'data/top-100-sites.txt'
-MEASURING_SCRIPT1 = 'stap nettop.stp -G parent_id='
-MEASURING_SCRIPT2 = 'stap syscall.stp -G parent_id='
+MEASURING_SCRIPT = 'stap stap_all.stp -G parent_id='
 MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Build/GRI40) ' + \
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
@@ -22,8 +21,8 @@ def main():
   sites = open(SITES_LIST, 'r').read().split('\n')
   maxSites = min(MAX_SITES, len(sites))
 
-  os.system('mkdir -p outpu')
-  for i, site in enumerate(sites[1:maxSites]):
+  os.system('mkdir -p output')
+  for i, site in enumerate(sites[:maxSites]):
     site_full = 'http://' + site
     print "[%d of %d] Loading site: %s" % (i+1, maxSites, site_full)
     for mobile in False, True:
@@ -35,29 +34,34 @@ def main():
       browser = webdriver.Firefox(profile)
       sleep(1)
 
-      tstart = time()
-      pStap1 = Popen('%s%s > outpu/%s-stap-packets.csv' % (MEASURING_SCRIPT1, str(os.getpid()), site), \
-          stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
-      pStap2 = Popen('%s%s > outpu/%s-stap-syscalls.csv' % (MEASURING_SCRIPT2, str(os.getpid()), site), \
-          stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
-      pConn = Popen(r'watch -n .5 "netstat -an ' + \
-          '| grep ESTABLISHED | wc -l >> outpu/%s-conns.csv"' % site, \
+      pStap = Popen('%s%s > output/%s-stap.csv' % (MEASURING_SCRIPT, str(os.getpid()), site), \
+              stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+      pConn = Popen('watch -n .2 "bash measure-connections.sh >> ' \
+          'output/%s-conns.csv"' % site, \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       browser.get(site_full) # Load page
-      tend = time()
       
-      loadTime = tend - tstart
-      open('outpu/%s-loadtime.csv' % site, 'w').write(str(loadTime))
-      print "Page load time: %.2f seconds" % loadTime
       sleep(SECONDS_PER_SITE)
+      timing = browser.execute_script("return performance.timing")
+      timing = OrderedDict( 
+        timeConnect = timing['connectEnd'] - timing['connectStart'],
+        timeDomLoad = timing['domComplete'] - timing['domLoading'],
+        timeDns = timing['domainLookupEnd'] - timing['domainLookupStart'],
+        timeRedirect = timing['redirectEnd'] - timing['redirectStart'],
+        timeResponse = timing['responseEnd'] - timing['responseStart']
+      )
+      print "Page load timers:"
+      for i in timing: print ' * %s: %dms' % (i, timing[i])
+      with open('output/%s-loadtime.csv' % site, 'w') as f:
+        f.write(','.join(str(i) for i in timing.values()))
 
-      kill((pConn, pStap1, pStap2))
-      # hacky, but the above doesn't work
+      kill((pConn, pStap))
+      # hacky, but the above doesn't work sometimes
       os.system('killall watch')
       browser.close()
       # since the files are getting somewhat large, ~3-5MB, compress them
-      os.system('bzip2 outpu/*.csv')
-
+      os.system('bzip2 -f output/*.csv')
+    print
   print "Terminated successfully!"
 
 def kill(procs):

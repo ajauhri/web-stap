@@ -135,21 +135,21 @@ probe udp.recvmsg.return
 }
 
 probe syscall.* {
-    if(pid() == parent_id) {
+    if(ppid() == parent_id) {
         store_syscalls[execname(), pid(), gettimeofday_s(), name] += 1
     }
 }
 
 probe netdev.transmit
 {
-    if(pid() == parent_id) {
+    if(ppid() == parent_id) {
         store_nw_send[execname(), pid(), gettimeofday_s()] <<< length
     }
 }
 
 probe netdev.receive
 {
-  if(pid() == parent_id) {
+  if(ppid() == parent_id) {
         store_nw_recv[execname(), pid(), gettimeofday_s()] <<< length
     }
 }
