@@ -1,4 +1,5 @@
 global parent_id = 0
+global browser_id = 0
 
 global store_kmalloc            //<1~name~pid~time~flags~ptr~bytes_alloc~>
 global store_kfree              //<2~name~pid~time~pointer~> 
@@ -23,91 +24,91 @@ global ifmerged
 
 probe vm.kmalloc
 {   
-   if(ppid() == parent_id) {
+   if(ppid() == parent_id || ppid() == browser_id) {
        store_kmalloc[execname(), pid(), gettimeofday_s(), gfp_flag_name, ptr] += bytes_alloc
        }
 }
 
 probe vm.kfree
 {   
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_kfree[execname(), pid(), gettimeofday_s(), ptr] += 1    
         }
 }
 
 probe vm.pagefault
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_page_fault[execname(), pid(), gettimeofday_s(), write_access] += 1
         }
 }
 
 probe vm.write_shared_copy
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_write_shared_copy[execname(), pid(), gettimeofday_s(), address] += 1
         }
 }
 
 probe scheduler.ctxswitch
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_context_switches[execname(), pid(), gettimeofday_s(), prev_pid, next_pid] += 1
         }
 }
 
 probe scheduler.wakeup
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_proc_wakeup[execname(), pid(), gettimeofday_s(), task_pid, task_cpu] += 1
         }
 }
 
 probe ioblock.end
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_block_io[execname(), pid(), gettimeofday_s(), ino] += bytes_done
     }
 }
 
 probe kprocess.create
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_process_or_thread[execname(), pid(), gettimeofday_s(), new_tid, new_pid] = 1
     }
 }
 
 probe socket.aio_read.return
 {
-    if(ppid() == parent_id &&  success) {
+    if(ppid() == parent_id || ppid() == browser_id &&  success) {
         store_msg_aio_read[execname(), pid(), gettimeofday_s(), protocol] += size
     }
 }
 
 probe socket.aio_write.return
 {
-    if(ppid() == parent_id && success) {
+    if(ppid() == parent_id || ppid() == browser_id && success) {
         store_msg_aio_write[execname(), pid(), gettimeofday_s(), protocol] += size
     }
 }
 
 probe socket.create.return
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_socket_create[execname(), pid(), gettimeofday_s()] += 1
     }
 }
  
 probe socket.close.return
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_socket_close[execname(), pid(), gettimeofday_s()] += 1
     }
 }
 
 probe tcp.sendmsg.return 
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_tcp_send[execname(), pid(), gettimeofday_s()] += size
     }
 }
@@ -115,46 +116,47 @@ probe tcp.sendmsg.return
        
 probe tcp.recvmsg.return 
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_tcp_recv[execname(), pid(), gettimeofday_s()] += size
     }
 }
 
 probe udp.sendmsg.return
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_udp_send[execname(), pid(), gettimeofday_s()] += size
     }
 }
 
 probe udp.recvmsg.return
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_udp_recv[execname(), pid(), gettimeofday_s()] += size
     }
 }
 
 probe syscall.* {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_syscalls[execname(), pid(), gettimeofday_s(), name] += 1
     }
 }
 
 probe netdev.transmit
 {
-    if(ppid() == parent_id) {
+    if(ppid() == parent_id || ppid() == browser_id) {
         store_nw_send[execname(), pid(), gettimeofday_s()] <<< length
     }
 }
 
 probe netdev.receive
 {
-  if(ppid() == parent_id) {
+  if(ppid() == parent_id || ppid() == browser_id) {
         store_nw_recv[execname(), pid(), gettimeofday_s()] <<< length
     }
 }
 
 function print_all() {
+    printf("browser: %d, ppid: %d", browser_id, parent_id)
     foreach ([exec, pid, ctime, flags, ptr] in store_kmalloc-) {
         printf("1~%s~%d~%lu~%s~%p~%d~\n", exec, pid, ctime, flags, ptr, store_kmalloc[exec, pid, ctime, flags, ptr])
     }

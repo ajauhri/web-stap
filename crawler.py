@@ -8,10 +8,10 @@ from collections import OrderedDict
 from selenium import webdriver
 
 SITES_LIST = 'data/top-100-sites.txt'
-MEASURING_SCRIPT = 'stap stap_all.stp -G parent_id='
+MEASURING_SCRIPT = 'stap stap_all.stp'
 MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Build/GRI40) ' + \
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
-SECONDS_PER_SITE = 150
+SECONDS_PER_SITE = 50
 MAX_SITES = 100
 
 def main():
@@ -32,10 +32,13 @@ def main():
         profile.set_preference("general.useragent.override", MOBILE_UA)
         site += '-m'
       browser = webdriver.Firefox(profile)
+      browserPID = browser.binary.process.pid
       sleep(1)
-
-      pStap = Popen('%s%s > output/%s-stap.csv' % (MEASURING_SCRIPT, str(os.getpid()), site), \
-              stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+      print '%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
+          (MEASURING_SCRIPT, str(os.getpid()), str(browserPID), site)
+      pStap = Popen('%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
+          (MEASURING_SCRIPT, str(os.getpid()), str(browserPID), site), \
+          stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       pConn = Popen('watch -n .2 "bash measure-connections.sh >> ' \
           'output/%s-conns.csv"' % site, \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
