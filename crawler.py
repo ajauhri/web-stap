@@ -74,8 +74,8 @@ def main():
 
 def kill(procs):
   for p in procs:
-    p.terminate()
     try:
+      p.terminate()
       os.killpg(p.pid, signal.SIGTERM)
     except OSError: pass
     p.wait()
