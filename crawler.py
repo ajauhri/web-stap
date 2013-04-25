@@ -6,6 +6,7 @@ from time import time,sleep
 from subprocess import Popen
 from collections import OrderedDict
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 
 SITES_LIST = 'data/sites-1m-pruned.csv'
 MEASURING_SCRIPT = 'stap stap_all.stp'
