@@ -7,12 +7,12 @@ from subprocess import Popen
 from collections import OrderedDict
 from selenium import webdriver
 
-SITES_LIST = 'data/top-100-sites.txt'
+SITES_LIST = 'data/sites-1m-pruned.csv'
 MEASURING_SCRIPT = 'stap stap_all.stp'
-MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Build/GRI40) ' + \
+MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Build/GRI40) ' \
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
-MAX_SITES = 100
+MAX_SITES = 1e6
 
 def main():
   if os.getuid() != 0:
@@ -54,11 +54,11 @@ def main():
       sleep(SECONDS_PER_SITE)
       timing = browser.execute_script("return performance.timing")
       timing = OrderedDict( 
-        timeConnect = timing['connectEnd'] - timing['connectStart'],
-        timeDomLoad = timing['domComplete'] - timing['domLoading'],
-        timeDns = timing['domainLookupEnd'] - timing['domainLookupStart'],
-        timeRedirect = timing['redirectEnd'] - timing['redirectStart'],
-        timeResponse = timing['responseEnd'] - timing['responseStart']
+          timeConnect = timing['connectEnd'] - timing['connectStart'],
+          timeDomLoad = timing['domComplete'] - timing['domLoading'],
+          timeDns = timing['domainLookupEnd'] - timing['domainLookupStart'],
+          timeRedirect = timing['redirectEnd'] - timing['redirectStart'],
+          timeResponse = timing['responseEnd'] - timing['responseStart']
       )
       print "Page load timers:"
       for i in timing: print ' * %s: %dms' % (i, timing[i])
