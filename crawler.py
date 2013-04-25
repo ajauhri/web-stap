@@ -34,8 +34,6 @@ def main():
       browser = webdriver.Firefox(profile)
       browserPID = browser.binary.process.pid
       sleep(1)
-      print '%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
-          (MEASURING_SCRIPT, str(os.getpid()), str(browserPID), site)
       pStap = Popen('%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
           (MEASURING_SCRIPT, str(os.getpid()), str(browserPID), site), \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
