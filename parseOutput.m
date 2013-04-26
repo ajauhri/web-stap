@@ -1,5 +1,9 @@
 %% do parsing
 clear all; close all;
+
+DURATION = 150; % seconds
+BINS = 30;
+
 files = dir('output');
 sites = [];
 
@@ -8,18 +12,23 @@ for i=3:length(files)
 end
 
 sites = unique(sites);
+sites = fliplr(sites);
 allConns = [];
 allConnsM = [];
 allLoadtimes = [];
 allLoadtimesM = [];
+allStaps = [];
+allStapsM = [];
 
-for i=1:length(sites)
+for i=length(sites):-1:1
    fname = sprintf('output/%s-conns.csv.bz2', sites{i});
    if ~exist(fname, 'file')
-       fprintf('Skipping %s\n', sites{i});
+       fprintf('Skipping %s (incomplete) \n', sites{i});
+       sites(i) = [];
        continue
    end
-   fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
+   fprintf('[%d of %d] %s\n', length(sites) - i + 1, ...
+       length(sites), sites{i})
    
    [status, out] = system(sprintf('bzcat %s', fname));
    assert(status == 0);
@@ -40,25 +49,40 @@ for i=1:length(sites)
    assert(status == 0);
    loadtimeM = str2num(out);
    
+   fname = sprintf('output/%s-stap.csv.bz2', sites{i});
+   cmd = sprintf( ...
+       ['bash -c "bzcat %s | grep -v ''browser:''' ...
+       ' | sed -e ''s/[^0-9~]*//g'' -e ''s/~/,/g''' ...
+       ' -e ''s/,,/,-1,/g'' -e ''s/,$//'' > .tmp"'], fname)
+   [status, out] = system(cmd);
+   assert(status == 0);
+   staps = importdata('.tmp');
+   
+   fname = sprintf('output/%s-m-stap.csv.bz2', sites{i});
+   [status, out] = system(sprintf( ...
+       ['bash -c "bzcat %s | grep -v ''browser:''' ...
+       ' | sed -e ''s/[^0-9~]*//g'' -e ''s/~/,/g''' ...
+       ' -e ''s/,,/,-1,/g'' -e ''s/,$//''  > .tmp"'], fname));
+   assert(status == 0);
+   stapsM = importdata('.tmp');
+   
    if length(conns) < 250 || length(connsM) < 250
-       fprintf('Skipping %s\n', sites{i});
+       fprintf('Skipping %s (not enough timesteps) \n', sites{i});
+       sites(i) = [];
       continue 
    end
    
-   % get syscall types:
-   % bzcat output/google.com-stap-syscalls.csv.bz2 | grep -i firefox  | sed -e 's/
-% \s\+/ /g' | cut -d' ' -f5 | sort | uniq
+   startTime = conns(1,1);
+   conns(:,1) = conns(:,1) - startTime;
+   startTime = connsM(1,1);
+   connsM(:,1) = connsM(:,1) - startTime;
    
-%    bzcat output/google.com-stap-packets.csv.bz2 | sed -e 's/\s\+/ /g' | sed 's/[
-% ^0-9][a-zA-Z] [a-zA-Z]//g' | sed 's/ #//g' | cut -d' ' -f7,8,10
-   % for parsing syscalls
-   % bzcat output/google.com-stap-syscalls.csv.bz2 | grep -i firefox | grep
-   % futex | sed -e 's/\s\+/ /g' | cut -d' ' -f 4,6
-   
-   allConns = [allConns conns(1:250)];
-   allConnsM = [allConnsM connsM(1:250)];
+   allConns = [allConns; {conns}];
+   allConnsM = [allConnsM; {connsM}];
    allLoadtimes = [allLoadtimes; loadtime];
    allLoadtimesM = [allLoadtimesM; loadtimeM];
+   allStaps = [allStaps; {staps}];
+   allStapsM = [allStapsM; {stapsM}];
 end
 
 %% plot results
