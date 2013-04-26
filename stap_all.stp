@@ -156,7 +156,6 @@ probe netdev.receive
 }
 
 function print_all() {
-    printf("browser: %d, ppid: %d", browser_id, parent_id)
     foreach ([exec, pid, ctime, flags, ptr] in store_kmalloc-) {
         printf("1~%s~%d~%lu~%s~%p~%d~\n", exec, pid, ctime, flags, ptr, store_kmalloc[exec, pid, ctime, flags, ptr])
     }
