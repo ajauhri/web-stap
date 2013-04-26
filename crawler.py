@@ -14,6 +14,7 @@ MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Buil
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
 MAX_SITES = 1e6
+START_INDEX = 110
 
 def main():
   if os.getuid() != 0:
@@ -23,9 +24,9 @@ def main():
   maxSites = min(MAX_SITES, len(sites))
 
   os.system('mkdir -p output')
-  for i, site in enumerate(sites[:maxSites]):
+  for i, site in enumerate(sites[START_INDEX:maxSites]):
     site_full = 'http://' + site
-    print "[%d of %d] Loading site: %s" % (i+1, maxSites, site_full)
+    print "[%d of %d] Loading site: %s" % (i+1+START_INDEX, maxSites, site_full)
     for mobile in False, True:
       print 'Trying %s user agent...' % ('mobile' if mobile else 'default')
       profile = webdriver.FirefoxProfile()
@@ -33,6 +34,7 @@ def main():
         profile.set_preference("general.useragent.override", MOBILE_UA)
         site += '-m'
       browser = webdriver.Firefox(profile)
+      browser.set_page_load_timeout(SECONDS_PER_SITE)
       browserPID = browser.binary.process.pid
       sleep(10)
       pStap = Popen('%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
@@ -51,6 +53,7 @@ def main():
       except WebDriverException as e:
         print str(e)
         kill((pConn, pStap))
+        browser.close()
       
       sleep(SECONDS_PER_SITE)
       timing = browser.execute_script("return performance.timing")
