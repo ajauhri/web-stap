@@ -157,87 +157,87 @@ probe netdev.receive
 
 function print_all() {
     foreach ([exec, pid, ctime, flags, ptr] in store_kmalloc-) {
-        printf("1~%s~%d~%lu~%s~%p~%d~\n", exec, pid, ctime, flags, ptr, store_kmalloc[exec, pid, ctime, flags, ptr])
+        printf("1~%s~%d~%lu~%s~%p~%d~0~\n", exec, pid, ctime, flags, ptr, store_kmalloc[exec, pid, ctime, flags, ptr])
     }
     delete store_kmalloc
 
     foreach ([exec, pid, ctime, ptr] in store_kfree-) {
-        printf("2~%s~%d~%lu~%p~\n", exec, pid, ctime, ptr)
+        printf("2~%s~%d~%lu~%p~0~0~0~\n", exec, pid, ctime, ptr)
     }
     delete store_kfree
 
     foreach ([exec, pid, ctime, access] in store_page_fault-) {
-        printf("3~%s~%d~%lu~%d~%d~\n", exec, pid, ctime, access, store_page_fault[exec, pid, ctime, access])
+        printf("3~%s~%d~%lu~%d~%d~0~0~\n", exec, pid, ctime, access, store_page_fault[exec, pid, ctime, access])
     }
     delete store_page_fault
     
     foreach ([exec, pid, ctime, address] in store_write_shared_copy-) {
-        printf("4~%s~%d~%lu~%p~%d~\n", exec, pid, ctime, address, store_write_shared_copy[exec, pid, ctime, address])
+        printf("4~%s~%d~%lu~%p~%d~0~0~\n", exec, pid, ctime, address, store_write_shared_copy[exec, pid, ctime, address])
     }
     delete store_write_shared_copy
 
     foreach ([exec, pid, ctime, prev_p, next_p] in store_context_switches-) {
-        printf("5~%s~%d~%lu~%d~%d~%d~\n", exec, pid, ctime, prev_p, next_p, store_context_switches[exec, pid, ctime, prev_p, next_p])
+        printf("5~%s~%d~%lu~%d~%d~%d~0~\n", exec, pid, ctime, prev_p, next_p, store_context_switches[exec, pid, ctime, prev_p, next_p])
     }
     delete store_context_switches
 
     foreach ([exec, pid, ctime, task_p, task_c] in store_proc_wakeup-) {
-        printf("6~%s~%d~%lu~%d~%lu~%d~\n", exec, pid, ctime, task_p, task_c, store_proc_wakeup[exec, pid, ctime, task_p, task_c]);
+        printf("6~%s~%d~%lu~%d~%lu~%d~0~\n", exec, pid, ctime, task_p, task_c, store_proc_wakeup[exec, pid, ctime, task_p, task_c]);
     }
     delete store_proc_wakeup
 
     foreach ([exec, pid, ctime, ino] in store_block_io-) {
-        printf("7~%s~%d~%lu~%d~%d~\n", exec, pid, ctime, ino, store_block_io[exec, pid, ctime, ino])
+        printf("7~%s~%d~%lu~%d~%d~0~0~\n", exec, pid, ctime, ino, store_block_io[exec, pid, ctime, ino])
     }
     delete store_block_io
 
     foreach ([exec, pid, ctime, tid, pid] in store_process_or_thread-) {
-        printf("8~%s~%d~%lu~%d~%d~\n", exec, pid, ctime, tid, pid);
+        printf("8~%s~%d~%lu~%d~%d~0~0~\n", exec, pid, ctime, tid, pid);
     }
     delete store_process_or_thread
     
     foreach ([exec, pid, ctime, protocol] in store_msg_aio_read-) {
-        printf("9~%s~%d~%lu~%d~%d~\n", exec, pid, ctime, protocol, store_msg_aio_read[exec, pid, ctime, protocol]);
+        printf("9~%s~%d~%lu~%d~%d~0~0~\n", exec, pid, ctime, protocol, store_msg_aio_read[exec, pid, ctime, protocol]);
     }
     delete store_msg_aio_read
 
     foreach ([exec, pid, ctime, protocol] in store_msg_aio_write-) {
-        printf("10~%s~%d~%lu~%d~%d~\n", exec, pid, ctime, protocol, store_msg_aio_write[exec, pid, ctime, protocol]);
+        printf("10~%s~%d~%lu~%d~%d~0~0~\n", exec, pid, ctime, protocol, store_msg_aio_write[exec, pid, ctime, protocol]);
     }
     delete store_msg_aio_write
 
     foreach ([exec, pid, ctime] in store_socket_create-) {
-        printf("11~%s~%d~%lu~%d~\n", exec, pid, ctime, store_socket_create[exec, pid, ctime]);
+        printf("11~%s~%d~%lu~%d~0~0~0~\n", exec, pid, ctime, store_socket_create[exec, pid, ctime]);
     }
     delete store_socket_create
 
     foreach ([exec, pid, ctime] in store_socket_close-) {
-        printf("12~%s~%d~%lu~%d~\n", exec, pid, ctime, store_socket_close[exec, pid, ctime]);
+        printf("12~%s~%d~%lu~%d~0~0~0~\n", exec, pid, ctime, store_socket_close[exec, pid, ctime]);
     }
     delete store_socket_close
 
     foreach ([exec, pid, ctime] in store_tcp_send-) {
-        printf("13~%s~%d~%lu~%d~\n", exec, pid, ctime, store_tcp_send[exec, pid, ctime]);
+        printf("13~%s~%d~%lu~%d~0~0~0~\n", exec, pid, ctime, store_tcp_send[exec, pid, ctime]);
     }
     delete store_tcp_send
 
     foreach ([exec, pid, ctime] in store_tcp_recv-) {
-        printf("14~%s~%d~%lu~%d~\n", exec, pid, ctime, store_tcp_recv[exec, pid, ctime]);
+        printf("14~%s~%d~%lu~%d~0~0~0~\n", exec, pid, ctime, store_tcp_recv[exec, pid, ctime]);
     }
     delete store_tcp_recv
 
     foreach ([exec, pid, ctime] in store_udp_send-) {
-        printf("15~%s~%d~%lu~%d~\n", exec, pid, ctime, store_udp_send[exec, pid, ctime]);
+        printf("15~%s~%d~%lu~%d~0~0~0~\n", exec, pid, ctime, store_udp_send[exec, pid, ctime]);
     }
     delete store_udp_send
 
     foreach ([exec, pid, ctime] in store_tcp_recv-) {
-        printf("16~%s~%d~%lu~%d~\n", exec, pid, ctime, store_udp_recv[exec, pid, ctime]);
+        printf("16~%s~%d~%lu~%d~0~0~0~\n", exec, pid, ctime, store_udp_recv[exec, pid, ctime]);
     }
     delete store_tcp_recv
     
     foreach ([exec, pid, ctime, name] in store_syscalls-) {
-        printf("17~%s~%d~%lu~%s~%d~\n", exec, pid, ctime, name, store_syscalls[exec, pid, ctime, name]) 
+        printf("17~%s~%d~%lu~%s~%d~0~0~\n", exec, pid, ctime, name, store_syscalls[exec, pid, ctime, name]) 
     }
     delete store_syscalls
 
