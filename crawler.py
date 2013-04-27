@@ -14,7 +14,7 @@ MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Buil
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
 MAX_SITES = 1e6
-START_INDEX = 110
+START_INDEX = 130
 
 def main():
   if os.getuid() != 0:
@@ -53,7 +53,8 @@ def main():
       except WebDriverException as e:
         print str(e)
         kill((pConn, pStap))
-        browser.close()
+        browser.quit()
+        continue
       
       sleep(SECONDS_PER_SITE)
       timing = browser.execute_script("return performance.timing")
@@ -70,7 +71,7 @@ def main():
         f.write(','.join(str(i) for i in timing.values()))
 
       kill((pConn, pStap))
-      browser.close()
+      browser.quit()
       # since the files are getting somewhat large, ~3-5MB, compress them
       os.system('bzip2 -f output/*.csv')
     print
