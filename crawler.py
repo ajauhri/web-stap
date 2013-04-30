@@ -8,13 +8,13 @@ from collections import OrderedDict
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
-SITES_LIST = 'data/sites-1m-pruned.csv'
+SITES_LIST = 'data/top-100-sites.txt'
 MEASURING_SCRIPT = 'stap stap_all.stp'
 MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Build/GRI40) ' \
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
 MAX_SITES = 1e6
-START_INDEX = 130
+START_INDEX = 0
 
 def main():
   if os.getuid() != 0:
