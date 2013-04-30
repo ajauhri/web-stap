@@ -37,8 +37,10 @@ def main():
       browser.set_page_load_timeout(SECONDS_PER_SITE)
       browserPID = browser.binary.process.pid
       sleep(10)
-      pStap = Popen('%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
-          (MEASURING_SCRIPT, str(os.getpid()), str(browserPID), site), \
+      cmd = '%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
+          (MEASURING_SCRIPT, str(os.getpid()), str(browserPID), site)
+      print cmd
+      pStap = Popen(cmd, \
           stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
       pConn = Popen('watch -n .2 "bash measure-connections.sh >> ' \
           'output/%s-conns.csv"' % site, \
