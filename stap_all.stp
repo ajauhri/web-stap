@@ -144,14 +144,14 @@ probe syscall.* {
 probe netdev.transmit
 {
     if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
-        store_nw_send[execname(), pid(), gettimeofday_s()] <<< length
+        store_nw_send[execname(), pid(), ppid(), gettimeofday_s()] <<< length
     }
 }
 
 probe netdev.receive
 {
   if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
-        store_nw_recv[execname(), pid(), gettimeofday_s()] <<< length
+        store_nw_recv[execname(), pid(), ppid(), gettimeofday_s()] <<< length
     }
 }
 
@@ -241,19 +241,19 @@ function print_all() {
     }
     delete store_syscalls
 
-    foreach ([exec, pid, ctime] in store_nw_recv) {
-	  ifmerged[exec, pid, ctime] += @count(store_nw_recv[exec, pid, ctime]);
+    foreach ([exec, pid, ppid, ctime] in store_nw_recv) {
+	  ifmerged[exec, pid, ppid, ctime] += @count(store_nw_recv[exec, pid, ppid, ctime]);
     }
-    foreach ([exec, pid, ctime] in store_nw_send) {
-	  ifmerged[exec, pid, ctime] += @count(store_nw_send[exec, pid, ctime]);
+    foreach ([exec, pid, ppid, ctime] in store_nw_send) {
+	  ifmerged[exec, pid, ppid, ctime] += @count(store_nw_send[exec, pid, ppid, ctime]);
     }
-    foreach ([exec, pid, ctime] in ifmerged-) {
-        n_sent = @count(store_nw_send[exec, pid, ctime])
-        n_recv = @count(store_nw_recv[exec, pid, ctime])
-        printf("18~%s~%d~%lu~%d~%d~%d~%d\n",
-           exec, pid, ctime, n_sent, n_recv,
-           n_sent ? @sum(store_nw_send[exec, pid, ctime]) : 0,
-           n_recv ? @sum(store_nw_recv[exec, pid, ctime]) : 0)
+    foreach ([exec, pid, ppid, ctime] in ifmerged-) {
+        n_sent = @count(store_nw_send[exec, pid, ppid, ctime])
+        n_recv = @count(store_nw_recv[exec, pid, ppid, ctime])
+        printf("18~%s~%d~%d~%lu~%d~%d~%d~%d\n",
+           exec, pid, ppid, ctime, n_sent, n_recv,
+           n_sent ? @sum(store_nw_send[exec, pid, ppid, ctime]) : 0,
+           n_recv ? @sum(store_nw_recv[exec, pid, ppid, ctime]) : 0)
     }
     delete store_nw_send
     delete store_nw_recv 
