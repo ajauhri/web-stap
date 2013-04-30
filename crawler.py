@@ -14,7 +14,7 @@ MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Buil
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
 MAX_SITES = 1e6
-START_INDEX = 130
+START_INDEX = 108
 
 def main():
   if os.getuid() != 0:
@@ -57,19 +57,23 @@ def main():
         continue
       
       sleep(SECONDS_PER_SITE)
-      timing = browser.execute_script("return performance.timing")
-      timing = OrderedDict( 
-          timeConnect = timing['connectEnd'] - timing['connectStart'],
-          timeDomLoad = timing['domComplete'] - timing['domLoading'],
-          timeDns = timing['domainLookupEnd'] - timing['domainLookupStart'],
-          timeRedirect = timing['redirectEnd'] - timing['redirectStart'],
-          timeResponse = timing['responseEnd'] - timing['responseStart']
-      )
-      print "Page load timers:"
-      for i in timing: print ' * %s: %dms' % (i, timing[i])
-      with open('output/%s-loadtime.csv' % site, 'w') as f:
-        f.write(','.join(str(i) for i in timing.values()))
-
+      try:
+        browser.set_script_timeout(3)
+        timing = browser.execute_async_script(
+            "arguments[arguments.length - 1](performance.timing)")
+        timing = OrderedDict( 
+            timeConnect = timing['connectEnd'] - timing['connectStart'],
+            timeDomLoad = timing['domComplete'] - timing['domLoading'],
+            timeDns = timing['domainLookupEnd'] - timing['domainLookupStart'],
+            timeRedirect = timing['redirectEnd'] - timing['redirectStart'],
+            timeResponse = timing['responseEnd'] - timing['responseStart']
+        )
+        print "Page load timers:"
+        for i in timing: print ' * %s: %dms' % (i, timing[i])
+        with open('output/%s-loadtime.csv' % site, 'w') as f:
+          f.write(','.join(str(i) for i in timing.values()))
+      except (WebDriverException, TypeError) as e:
+        print 'Javascript timer error: ' + str(e)
       kill((pConn, pStap))
       browser.quit()
       # since the files are getting somewhat large, ~3-5MB, compress them
