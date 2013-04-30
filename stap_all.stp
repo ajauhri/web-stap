@@ -141,6 +141,18 @@ probe syscall.* {
     }
 }
 
+probe socket.sendmsg {
+    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
+        store_nw_send[execname(), pid(), ppid(), gettimeofday_s()] <<< size
+    }
+}
+
+probe socket.recvmsg {
+    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
+        store_nw_recv[execname(), pid(), ppid(), gettimeofday_s()] <<< size
+    }
+}
+/*
 probe netdev.transmit
 {
     if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
@@ -154,6 +166,7 @@ probe netdev.receive
         store_nw_recv[execname(), pid(), ppid(), gettimeofday_s()] <<< length
     }
 }
+*/
 
 function print_all() {
     foreach ([exec, pid, ctime, flags, ptr] in store_kmalloc-) {
@@ -242,10 +255,10 @@ function print_all() {
     delete store_syscalls
 
     foreach ([exec, pid, ppid, ctime] in store_nw_recv) {
-	  ifmerged[exec, pid, ppid, ctime] += @count(store_nw_recv[exec, pid, ppid, ctime]);
+	  ifmerged[exec, pid, ppid,  ctime] += @count(store_nw_recv[exec, pid,ppid,ctime]);
     }
     foreach ([exec, pid, ppid, ctime] in store_nw_send) {
-	  ifmerged[exec, pid, ppid, ctime] += @count(store_nw_send[exec, pid, ppid, ctime]);
+	  ifmerged[exec, pid, ppid, ctime] += @count(store_nw_send[exec, pid, ppid, time]);
     }
     foreach ([exec, pid, ppid, ctime] in ifmerged-) {
         n_sent = @count(store_nw_send[exec, pid, ppid, ctime])
