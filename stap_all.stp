@@ -244,10 +244,10 @@ function print_all() {
     }
     delete store_udp_send
 
-    foreach ([exec, pid, ctime] in store_tcp_recv-) {
+    foreach ([exec, pid, ctime] in store_udp_recv-) {
         printf("16~%s~%d~%lu~%d~0~0~0\n", exec, pid, ctime, store_udp_recv[exec, pid, ctime]);
     }
-    delete store_tcp_recv
+    delete store_udp_recv
     
     foreach ([exec, pid, ctime, name] in store_syscalls-) {
         printf("17~%s~%d~%lu~%s~%d~0~0\n", exec, pid, ctime, name, store_syscalls[exec, pid, ctime, name]) 

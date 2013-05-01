@@ -14,7 +14,7 @@ MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Buil
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
 MAX_SITES = 1e6
-START_INDEX = 108
+START_INDEX = 0
 
 def main():
   if os.getuid() != 0:
