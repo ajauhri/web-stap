@@ -14,7 +14,7 @@ MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Buil
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
 MAX_SITES = 1e6
-START_INDEX = 0
+START_INDEX = 783
 
 def main():
   if os.getuid() != 0:
@@ -35,8 +35,9 @@ def main():
         site += '-m'
       browser = webdriver.Firefox(profile)
       browser.set_page_load_timeout(SECONDS_PER_SITE)
+      browser.set_script_timeout(3)
       browserPID = browser.binary.process.pid
-      sleep(10)
+      sleep(5)
       cmd = '%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
           (MEASURING_SCRIPT, str(os.getpid()), str(browserPID), site)
       print cmd
@@ -50,6 +51,7 @@ def main():
         kill((pConn, pStap))
         
       signal.signal(signal.SIGINT, close)
+      sleep(5)
       try:
         browser.get(site_full) # Load page
       except WebDriverException as e:
@@ -60,7 +62,6 @@ def main():
       
       sleep(SECONDS_PER_SITE)
       try:
-        browser.set_script_timeout(3)
         timing = browser.execute_async_script(
             "arguments[arguments.length - 1](performance.timing)")
         timing = OrderedDict( 
