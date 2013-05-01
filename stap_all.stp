@@ -256,7 +256,7 @@ function print_all() {
     foreach ([exec, pid, ctime] in store_nw_recv) {
         printf("18~%s~%d~%lu~%d~0~0\n", exec, pid, ctime, @sum(store_nw_recv[exec, pid, ctime])) 
     }
-    foreach ([exec, pid, ppid, ctime] in store_nw_send) {
+    foreach ([exec, pid, ctime] in store_nw_send) {
         printf("19~%s~%d~%lu~%d~0~0\n", exec, pid, ctime, @sum(store_nw_send[exec, pid, ctime])) 
     }
 
