@@ -18,8 +18,8 @@ global store_tcp_recv           //<14~name~pid~time~size>
 global store_udp_send           //<15~name~pid~time~size>
 global store_udp_recv           //<16~name~pid~time~size>
 global store_syscalls           //<17~name~pid~time~name~freq>
-global store_nw_send            
-global store_nw_recv            //<18~name~pid~time~#packets_sent~#packets_recv~bytes_sent~bytes_recv>
+global store_nw_recv            //<18~name~pid~time~bytes_recv>
+global store_nw_sent            //<19~name~pid~time~bytes_sent>
 
 probe vm.kmalloc
 {   
@@ -107,7 +107,7 @@ probe socket.close.return
 
 probe tcp.sendmsg.return 
 {
-    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
+    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id) && size>0) {
         store_tcp_send[execname(), pid(), gettimeofday_s()] += size
     }
 }
@@ -115,21 +115,21 @@ probe tcp.sendmsg.return
        
 probe tcp.recvmsg.return 
 {
-    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
+    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id) && size>0) {
         store_tcp_recv[execname(), pid(), gettimeofday_s()] += size
     }
 }
 
 probe udp.sendmsg.return
 {
-    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
+    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id) && size>0) {
         store_udp_send[execname(), pid(), gettimeofday_s()] += size
     }
 }
 
 probe udp.recvmsg.return
 {
-    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
+    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id) && size>0) {
         store_udp_recv[execname(), pid(), gettimeofday_s()] += size
     }
 }
@@ -140,32 +140,15 @@ probe syscall.* {
     }
 }
 
-probe socket.sendmsg {
-    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
-        store_nw_send[execname(), pid(), gettimeofday_s()] <<< size
-    }
-}
-
-probe socket.recvmsg {
-    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
-        store_nw_recv[execname(), pid(), gettimeofday_s()] <<< size
-    }
-}
-/*
-probe netdev.transmit
-{
-    if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
-        store_nw_send[execname(), pid(), ppid(), gettimeofday_s()] <<< length
-    }
-}
-
 probe netdev.receive
 {
-  if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id)) {
-        store_nw_recv[execname(), pid(), ppid(), gettimeofday_s()] <<< length
-    }
+    store_nw_recv[execname(), pid(), gettimeofday_s(), dev_name] <<< length
 }
-*/
+
+probe netdev.transmit
+{
+    store_nw_sent[execname(), pid(), gettimeofday_s(), dev_name] <<< length
+}
 
 function print_all() {
     foreach ([exec, pid, ctime, flags, ptr] in store_kmalloc-) {
@@ -253,15 +236,19 @@ function print_all() {
     }
     delete store_syscalls
 
-    foreach ([exec, pid, ctime] in store_nw_recv) {
-        printf("18~%s~%d~%lu~%d~0~0\n", exec, pid, ctime, @sum(store_nw_recv[exec, pid, ctime])) 
+    foreach ([exec, pid, ctime, dev] in store_nw_recv) {
+        if(dev=="wlan0") {
+            printf("18~%s~%d~%lu~%d~0~0\n", exec, pid, ctime, @sum(store_nw_recv[exec, pid, ctime, dev])) 
+        }
     }
-    foreach ([exec, pid, ctime] in store_nw_send) {
-        printf("19~%s~%d~%lu~%d~0~0\n", exec, pid, ctime, @sum(store_nw_send[exec, pid, ctime])) 
-    }
-
-    delete store_nw_send
     delete store_nw_recv 
+    
+    foreach ([exec, pid, ctime, dev] in store_nw_send) {
+        if(dev=="wlan0") {
+            printf("19~%s~%d~%lu~%d~0~0\n", exec, pid, ctime, @sum(store_nw_send[exec, pid, ctime, dev])) 
+            }
+    }
+    delete store_nw_send
 }
 
 
