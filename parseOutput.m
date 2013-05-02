@@ -175,10 +175,10 @@ for i=1:1
            stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
            subplot(2,1,1)
            plot(stap_time_series(:,1),stap_time_series(:,2), ...
-               'Linewidth', 1, 'MarkerSize',4, 'Color',[0.306 0.396 0.580])
+               'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
            hold all
            plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
-               '--','Linewidth', 1, 'MarkerSize',4,'Color',[0.043 0.518 0.780])
+               '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
            box off
            ylabel(feature_names{k})
            title(sprintf('%s -- %s', sitename{:}, feature_names{k}))
@@ -186,10 +186,10 @@ for i=1:1
            
            subplot(2,1,2)
            plot(stap_time_series(:,1),cumsum(stap_time_series(:,2)), ...
-               'Linewidth', 1, 'MarkerSize',4, 'Color',[0.306 0.396 0.580])
+               'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
            hold all
            plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
-               '--','Linewidth', 1, 'MarkerSize',4,'Color',[0.043 0.518 0.780])
+               '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
            box off
            ylabel('Cumulative sum')
            xlabel('Time (seconds)')
@@ -207,11 +207,40 @@ for i=1:1
 end
 close all
 
-%%
+%% calculate aggregates
+DURATION = 150; % seconds
+BINS = 30;
 
-% unused
-% DURATION = 150; % seconds
-% BINS = 30;
+binduration = DURATION / BINS;
+aggDat = zeros(numSites, sum(cellfun(@length,stap_dim)), BINS);
+aggDatM = zeros(numSites, sum(cellfun(@length,stap_dim)), BINS);
+
+for i=1:numSites
+    fprintf('[%d of %d]\n', i, numSites)
+    stapIndex = 1;
+    for j=1:stapTypes
+       relevantStap = stapDataAggregated{i, j};
+       relevantStapM = stapDataAggregatedM{i, j};
+       timestamps = relevantStap(:,3);
+       timestampsM = relevantStapM(:,3);
+
+       for k=1:length(stap_dim{j})
+           stapIndex = stapIndex + 1;
+           stap_time_series = sortrows([timestamps relevantStap(:,k)]);
+           stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
+            for b=1:BINS
+                binDat = stap_time_series(binduration * (b-1) <= stap_time_series(:,1) & ...
+                    stap_time_series(:,1) < (binduration * b), 2);
+                aggDat(i, stapIndex, b) = sum(binDat);
+                
+                binDatM = stap_time_seriesM(binduration * (b-1) <= stap_time_seriesM(:,1) & ...
+                    stap_time_seriesM(:,1) < (binduration * b), 2);
+                aggDatM(i, stapIndex, b) = sum(binDatM);
+            end
+       end
+    end
+end
+fprintf('Done!')
 
 %% plot results [OLD]
 plot(allConns)
