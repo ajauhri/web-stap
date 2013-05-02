@@ -123,7 +123,7 @@ probe tcp.recvmsg.return
 probe udp.sendmsg.return
 {
     if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id) && size>0) {
-        store_udp_send[execname(), pid(), gettimeofday_s()] += size
+        store_udp_sent[execname(), pid(), gettimeofday_s()] += size
     }
 }
 
@@ -243,12 +243,12 @@ function print_all() {
     }
     delete store_nw_recv 
     
-    foreach ([exec, pid, ctime, dev] in store_nw_send) {
+    foreach ([exec, pid, ctime, dev] in store_nw_sent) {
         if(dev=="wlan0") {
-            printf("19~%s~%d~%lu~%d~0~0\n", exec, pid, ctime, @sum(store_nw_send[exec, pid, ctime, dev])) 
+            printf("19~%s~%d~%lu~%d~0~0\n", exec, pid, ctime, @sum(store_nw_sent[exec, pid, ctime, dev])) 
             }
     }
-    delete store_nw_send
+    delete store_nw_sent
 }
 
 
