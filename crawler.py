@@ -2,6 +2,7 @@
 import subprocess
 import os
 import signal
+from httplib import HTTPException
 from time import time,sleep
 from subprocess import Popen
 from collections import OrderedDict
@@ -54,14 +55,7 @@ def main():
       sleep(5)
       try:
         browser.get(site_full) # Load page
-      except WebDriverException as e:
-        print str(e)
-        kill((pConn, pStap))
-        browser.quit()
-        continue
-      
-      sleep(SECONDS_PER_SITE)
-      try:
+        sleep(SECONDS_PER_SITE)
         timing = browser.execute_async_script(
             "arguments[arguments.length - 1](performance.timing)")
         timing = OrderedDict( 
@@ -75,8 +69,8 @@ def main():
         for i in timing: print ' * %s: %dms' % (i, timing[i])
         with open('output_corr/%s-loadtime.csv' % site, 'w') as f:
           f.write(','.join(str(i) for i in timing.values()))
-      except (WebDriverException, TypeError) as e:
-        print 'Javascript timer error: ' + str(e)
+      except (WebDriverException, TypeError, HTTPException) as e:
+        print 'Page load/timer error: ' + str(e)
       kill((pConn, pStap))
       browser.quit()
       # since the files are getting somewhat large, ~3-5MB, compress them
