@@ -138,18 +138,39 @@ siteIndex = 1;
 stepID = 16;
 display(sites(length(sites) - siteIndex + 1));
 relevantStap = stapDataAggregated{siteIndex, stepID};
-% [process_name, PID, timestep, ..., packets, bytesSent, bytesRec]
+
 timestamps = relevantStap(:,3);
 bytesRec = relevantStap(:,end);
 bytesSent = relevantStap(:,end-1);
 plot(cumsum(bytesRec))
 
 %% plot staps (all sites)
-
-for i=1:1 % numSites
+mkdir('figs');
+for i=1:numSites
+    sitename = sites(length(sites) - i + 1);
     for j=1:stapTypes
        relevantStap = stapDataAggregated{i, j};
+       % [process_name, PID, timestep, ...]
        timestamps = relevantStap(:,3);
+       [sortedTimestamps, sortedInd] = sort(timestamps);
+       for k=4:length(stap_dim{j})
+           feature_names = stap_dim{j};
+           stap_time_series = relevantStap(:,k);
+           subplot(2,1,1)
+           plot(sortedTimestamps,stap_time_series(sortedInd))
+           ylabel(feature_names{k})
+           title(sprintf('%s -- %s', sitename{:}, feature_names{k}))
+           
+           subplot(2,1,2)
+           plot(sortedTimestamps,cumsum(stap_time_series(sortedInd)))
+           ylabel('Cumulative sum')
+           xlabel('Time (seconds)')
+           
+           set(gcf,'PaperPositionMode','auto')
+           print(gcf,'-dpng','-r300', sprintf('figs/%s.%d.%s.png', ...
+               sitename{:}, j, feature_names{k}))
+           close all
+       end
     end
 end
 
