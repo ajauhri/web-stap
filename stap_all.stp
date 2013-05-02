@@ -123,7 +123,7 @@ probe tcp.recvmsg.return
 probe udp.sendmsg.return
 {
     if(pid() != parent_id && (ppid() == parent_id || ppid() == browser_id) && size>0) {
-        store_udp_sent[execname(), pid(), gettimeofday_s()] += size
+        store_udp_send[execname(), pid(), gettimeofday_s()] += size
     }
 }
 
