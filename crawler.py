@@ -35,6 +35,7 @@ def main():
         site += '-m'
       browser = webdriver.Firefox(profile)
       browser.set_page_load_timeout(SECONDS_PER_SITE)
+      browser.set_script_timeout(3)
       browserPID = browser.binary.process.pid
       sleep(5)
       cmd = '%s -G parent_id=%s -G browser_id=%s > output_corr/%s-stap.csv' % \
@@ -50,6 +51,7 @@ def main():
         kill((pConn, pStap))
         
       signal.signal(signal.SIGINT, close)
+      sleep(5)
       try:
         browser.get(site_full) # Load page
       except WebDriverException as e:
@@ -60,7 +62,6 @@ def main():
       
       sleep(SECONDS_PER_SITE)
       try:
-        browser.set_script_timeout(3)
         timing = browser.execute_async_script(
             "arguments[arguments.length - 1](performance.timing)")
         timing = OrderedDict( 

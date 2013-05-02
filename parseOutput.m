@@ -1,6 +1,5 @@
 %% do parsing
 clear all; close all;
-load stap_dim
 
 files = dir('output');
 sites = [];
@@ -47,6 +46,10 @@ for i=length(sites):-1:1
        sites(i) = [];
        continue
    end
+   
+   % load times structure:
+   % [timeConnect,timeDomLoad, timeDns, timeRedirect, timeResponse]
+   
    loadtime = str2num(out);
    
    fname = sprintf('output/%s-m-loadtime.csv.bz2', sites{i});
@@ -57,6 +60,13 @@ for i=length(sites):-1:1
        continue
    end
    loadtimeM = str2num(out);
+   
+   % if dom never loaded...
+   if loadtime(2) < 0 || loadtimeM(2) < 0
+       fprintf('Skipping %s (no page load) \n', sites{i});
+       sites(i) = [];
+       continue
+   end
    
    fname = sprintf('output/%s-stap.csv.bz2', sites{i});
    cmd = sprintf( ...
@@ -93,6 +103,10 @@ for i=length(sites):-1:1
    conns(:,1) = conns(:,1) - startTime;
    startTime = connsM(1,1);
    connsM(:,1) = connsM(:,1) - startTime;
+   startTime = min(staps(:,4));
+   staps(:,4) = staps(:,4) - startTime;
+   startTime = min(stapsM(:,4));
+   stapsM(:,4) = stapsM(:,4) - startTime;
    
    allConns = [allConns; {conns}];
    allConnsM = [allConnsM; {connsM}];
@@ -103,6 +117,7 @@ for i=length(sites):-1:1
 end
 
 %% link stap indices; remove empty sites
+load stap_dim
 stapTypes = length(stap_dim);
 numSites = length(allStaps);
 
@@ -111,22 +126,35 @@ stapDataAggregated = cell(numSites, stapTypes);
 for i=1:numSites
     staps = allStaps{i};
     for j=1:stapTypes
-       relevantStaps = staps(staps(:,1) == j, 2:stap_dim(j));
+       relevantStaps = staps(staps(:,1) == j, 2:length(stap_dim{j})+1);
        stapDataAggregated{i,j} = relevantStaps;
     end
 end
 
 %% plot staps (single site)
-siteIndex = 13;
+siteIndex = 1;
 
 % for TCP download stap
-stepID = 18;
+stepID = 16;
 display(sites(length(sites) - siteIndex + 1));
 relevantStap = stapDataAggregated{siteIndex, stepID};
 % [process_name, PID, timestep, ..., packets, bytesSent, bytesRec]
 timestamps = relevantStap(:,3);
 bytesRec = relevantStap(:,end);
 bytesSent = relevantStap(:,end-1);
+plot(cumsum(bytesRec))
+
+%% plot staps (all sites)
+
+for i=1:1 % numSites
+    for j=1:stapTypes
+       relevantStap = stapDataAggregated{i, j};
+       timestamps = relevantStap(:,3);
+    end
+end
+
+
+%%
 
 % unused
 % DURATION = 150; % seconds
