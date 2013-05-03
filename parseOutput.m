@@ -3,8 +3,14 @@ clear all; close all;
 !rm -f .tmp*
 
 TIMESTAMP_INDEX = 2;
-MANUAL_CRAWLING_MODE = true;
-OUTPUT_DIR = 'specific_jobs';
+MANUAL_CRAWLING_MODE = false;
+
+if MANUAL_CRAWLING_MODE
+    OUTPUT_DIR = 'specific_jobs';
+else
+    OUTPUT_DIR = 'output';
+end
+
 files = dir(OUTPUT_DIR);
 sites = [];
 
@@ -22,7 +28,7 @@ allStaps = cell(1, numSites);
 allStapsM = cell(1, numSites);
 
 tic
-for i=1:numSites
+parfor i=1:numSites
    fname = sprintf('%s/%s-conns.csv.bz2', OUTPUT_DIR, sites{i});
    fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
    
@@ -101,6 +107,9 @@ for i=1:numSites
        fprintf('Skipping %s (odd output)\n', sites{i});
       continue 
    end
+   
+   startTime = min(staps(:,TIMESTAMP_INDEX));
+   staps(:,TIMESTAMP_INDEX) = staps(:,TIMESTAMP_INDEX) - startTime;
    if ~MANUAL_CRAWLING_MODE
        startTime = conns(1,1);
        conns(:,1) = conns(:,1) - startTime;
@@ -118,8 +127,6 @@ for i=1:numSites
        stapsM = [];
        loadtimeM = [];
    end
-   startTime = min(staps(:,TIMESTAMP_INDEX));
-   staps(:,TIMESTAMP_INDEX) = staps(:,TIMESTAMP_INDEX) - startTime;
    
    allConns{i} = conns;
    allConnsM{i} = connsM;
@@ -141,6 +148,7 @@ for i=length(sites):-1:1
         allStapsM(i) = [];
     end
 end
+numSites = length(sites);
 
 save parsed
 toc
@@ -295,8 +303,13 @@ for j=1:stapTypes
 end
 close all
 
-%% plot results [OLD]
-plot(allConns)
+%% plot results
+close all
+for i=1:numSites
+    conns = allConns{i};
+    plot(conns(:,1), conns(:,2))
+    hold all
+end
 legend(sites)
 
 %% boxplots
