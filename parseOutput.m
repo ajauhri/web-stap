@@ -117,9 +117,10 @@ parfor i=1:numSites
        connsM(:,1) = connsM(:,1) - startTime;
        startTime = min(stapsM(:,TIMESTAMP_INDEX));
        stapsM(:,TIMESTAMP_INDEX) = stapsM(:,TIMESTAMP_INDEX) - startTime;
+       
        % ensure we're actually looking at time
-       assert(~any(staps(:,TIMESTAMP_INDEX) > 200))
-       assert(~any(stapsM(:,TIMESTAMP_INDEX) > 200))
+       assert(~any(staps(:,TIMESTAMP_INDEX) > 250))
+       assert(~any(stapsM(:,TIMESTAMP_INDEX) > 250))
    else
        loadtime = [];
        conns = [];
@@ -150,11 +151,10 @@ for i=length(sites):-1:1
 end
 numSites = length(sites);
 
-save parsed
 toc
 fprintf('Done!\n')
 
-%% link stap indices
+% link stap indices
 load feature_names
 stap_feature_names = feature_names;
 
@@ -178,6 +178,7 @@ for i=1:numSites
        end
     end
 end
+save parsed
 
 %% plot staps (single site)
 siteIndex = 1;
@@ -192,19 +193,21 @@ plot(timestamps,feature)
 
 %% plot everything individually (all sites)
 save_figs = true;
+use_export_fig = false;
 close all;
 mkdir('figs');
 tic
-parfor i=1:numSites
+for i=20:numSites
     sitename = sites(i);
     fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
     mkdir(sprintf('figs/%s',sitename{:}));
     for j=1:stapTypes
        featureName = stap_feature_names(j);
+       featureName = strrep(featureName, '_', '\_');
        relevantStap = stapDataAggregated{i, j};
        relevantStapM = stapDataAggregatedM{i, j};
        
-       if isempty(relevantStap) || isempty(relevantStapM)
+       if size(relevantStap,1) <= 5
           continue 
        end
        fprintf('--> plotting %s (%d of %d) \n', featureName{:}, j, stapTypes)
@@ -236,10 +239,16 @@ parfor i=1:numSites
        
        if save_figs
            set(gcf,'PaperPositionMode','auto')
-           print(gcf,'-dpng','-r300', sprintf('figs/%s/%d.%s.png', ...
-               sitename{:}, j, featureName{:}))
+           if use_export_fig
+                export_fig(sprintf('figs/%s/%d.%s.png', ...
+                   sitename{:}, j, featureName{:}), '-r300')
+           else
+               print(gcf,'-dpng','-r300', sprintf('figs/%s/%d.%s.png', ...
+                   sitename{:}, j, featureName{:}))
+           end
+       else
+           pause
        end
-       %        pause
        clf('reset')
     end
 end
