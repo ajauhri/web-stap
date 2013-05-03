@@ -17,21 +17,21 @@ cat .tmp_corr.$2 | grep '^19~' | \
 #--- nw bytes transformation ends here ---#
 
 #--- sockets transformation starts here ---#
-cat .tmp_corr | grep '^11~' | \
-    awk -F'~' -v sock_create='120' -v str='' '{str=sock_create","$4","$5} {print str}' >> .tmp
+cat .tmp_corr.$2 | grep '^11~' | \
+    awk -F'~' -v sock_create='120' -v str='' '{str=sock_create","$4","$5} {print str}' >> .tmp.$2
 
-cat .tmp_corr | grep '^12~' | \
-    awk -F'~' -v sock_close='121' -v str='' '{str=sock_close","$4","$5} {print str}' >> .tmp
+cat .tmp_corr.$2 | grep '^12~' | \
+    awk -F'~' -v sock_close='121' -v str='' '{str=sock_close","$4","$5} {print str}' >> .tmp.$2
 #--- nw bytes transformation ends here ---#
 
 #--- thread transformation starts here ---#
-cat .tmp_corr | grep '^8~' | \
-    awk -F'~' -v thread='122' -v str='' '{str=thread","$4",1"} {print str}' >> .tmp
+cat .tmp_corr.$2 | grep '^8~' | \
+    awk -F'~' -v thread='122' -v str='' '{str=thread","$4",1"} {print str}' >> .tmp.$2
 #--- thread transformation ends here ---#
 
 #--- context switch transformation starts here ---#
-cat .tmp_corr | grep '^5~' | \
-    awk -F'~' -v context='123' -v str='' '{str=context","$4","$7} {print str}' >> .tmp
+cat .tmp_corr.$2 | grep '^5~' | \
+    awk -F'~' -v context='123' -v str='' '{str=context","$4","$7} {print str}' >> .tmp.$2
 #--- context switch transformation ends here ---#
 
 
