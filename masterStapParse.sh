@@ -3,6 +3,7 @@ bzcat $1 | \
     -e 's/Proxy R~olution/Proxy Rolution/g' \
     > .tmp_corr
 
+#--- system call transformation starts here ---#
 cat .tmp_corr | grep '^17' | \
     -e s/accept/1/g \
     -e s/access/2/g \
@@ -125,5 +126,5 @@ cat .tmp_corr | grep '^17' | \
     -e 's/,$//' | \
     awk -F, '{print $5","$4","$6}' \
     >> .tmp
-
+#--- system call transformation ends here ---#
 rm .tmp_corr
