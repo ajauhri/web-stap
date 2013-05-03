@@ -1,6 +1,8 @@
 bzcat $1 | \
     sed  -e 's/JS Sour~ Thread/Sour Thread/g' \
     -e 's/Proxy R~olution/Proxy Rolution/g' \
+    -e 's/DNS Res~ver #10/DNS Resver #10/g' \
+    -e 's/DNS Res~ver #11/DNS Resver #11/g' \
     > .tmp_corr.$2
 
 #--- page fault transformation starts here ---#
