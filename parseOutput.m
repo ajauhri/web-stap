@@ -18,6 +18,7 @@ allLoadtimesM = [];
 allStaps = [];
 allStapsM = [];
 
+tic
 for i=length(sites):-1:1
    fname = sprintf('output/%s-conns.csv.bz2', sites{i});
    fprintf('[%d of %d] %s\n', length(sites) - i + 1, ...
@@ -63,6 +64,7 @@ for i=length(sites):-1:1
    loadtimeM = str2num(out);
    
    % if dom never loaded, or if page loaded abnormally fast...
+   % TODO: fix this -- too many false positives
    if loadtime(2) < 0 || loadtimeM(2) < 0 || ... 
            loadtime(1) <= 0 || loadtimeM(1) <= 0
        fprintf('Skipping %s (no page load) \n', sites{i});
@@ -80,6 +82,7 @@ for i=length(sites):-1:1
        continue
    end
    staps = importdata('.tmp');
+   delete('.tmp')
    
    fname = sprintf('output/%s-m-stap.csv.bz2', sites{i});
    cmd = sprintf( 'bash masterStapParse.sh %s', fname);
@@ -91,6 +94,7 @@ for i=length(sites):-1:1
        continue
    end
    stapsM = importdata('.tmp');
+   delete('.tmp')
    
    if length(conns) < 250 || length(connsM) < 250 || isempty(staps) || isempty(stapsM)
        fprintf('Skipping %s (odd output)\n', sites{i});
@@ -118,7 +122,10 @@ for i=length(sites):-1:1
    allStaps = [allStaps; {staps}];
    allStapsM = [allStapsM; {stapsM}];
 end
+sites = fliplr(sites);
 save parsed
+toc
+fprintf('Done!\n')
 
 %% link stap indices; remove empty sites
 load syscallNames
@@ -145,7 +152,7 @@ end
 %% plot staps (single site)
 siteIndex = 1;
 stapID = 114;
-display(sites(length(sites) - siteIndex + 1));
+display(sites{siteIndex});
 display(stap_feature_names(stapID))
 relevantStap = stapDataAggregated{siteIndex, stapID};
 
@@ -157,13 +164,20 @@ plot(timestamps,feature)
 save_figs = true;
 close all;
 mkdir('figs');
-for i=1:1
-    sitename = sites(length(sites) - i + 1);
+tic
+for i=1:numSites
+    sitename = sites(i);
+    fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
     mkdir(sprintf('figs/%s',sitename{:}));
     for j=1:stapTypes
+       featureName = stap_feature_names(j);
        relevantStap = stapDataAggregated{i, j};
        relevantStapM = stapDataAggregatedM{i, j};
-       featureName = stap_feature_names(j);
+       
+       if isempty(relevantStap) || isempty(relevantStapM)
+          continue 
+       end
+       fprintf('--> plotting %s (%d of %d) \n', featureName{:}, j, stapTypes)
        % relevantStap-format: [timestamp, feature]
        
        stap_time_series = sortrows(relevantStap);
@@ -195,11 +209,12 @@ for i=1:1
            print(gcf,'-dpng','-r300', sprintf('figs/%s/%d.%s.png', ...
                sitename{:}, j, featureName{:}))
        end
-       pause
+       %        pause
        clf('reset')
     end
 end
 close all
+toc
 
 %% calculate aggregates
 DURATION = 150; % seconds
@@ -234,7 +249,7 @@ for i=1:numSites
         end
     end
 end
-fprintf('Done!')
+fprintf('Done!\n')
 
 %% plot aggregates
 mkdir('figs-aggregate')
@@ -243,7 +258,7 @@ stapIndex = 1;
 for j=1:stapTypes
     for k=1:length(stap_feature_names(j))
         stapIndex = stapIndex + 1;
-        feature_name = stap_feature_names(j){k};
+%         feature_name = stap_feature_names(j){k};
 
         boxplot(squeeze(aggDat(:,stapIndex,:)))
         title(sprintf('%d -- %s', j, feature_name))
