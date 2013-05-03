@@ -61,18 +61,16 @@ for i=length(sites):-1:1
    end
    loadtimeM = str2num(out);
    
-   % if dom never loaded...
-   if loadtime(2) < 0 || loadtimeM(2) < 0
+   % if dom never loaded, or if page loaded abnormally fast...
+   if loadtime(2) < 0 || loadtimeM(2) < 0 || ... 
+           loadtime(1) <= 0 || loadtimeM(1) <= 0
        fprintf('Skipping %s (no page load) \n', sites{i});
        sites(i) = [];
        continue
    end
    
    fname = sprintf('output/%s-stap.csv.bz2', sites{i});
-   cmd = sprintf( ...
-       ['bash -c "bzcat %s | grep -v ''browser:''' ...
-       ' | sed -e ''s/[^0-9~]*//g'' -e ''s/~/,/g''' ...
-       ' -e ''s/,,/,-1,/g'' -e ''s/,$//'' > .tmp"'], fname);
+   cmd = sprintf( 'bash parseBzip.sh %s', fname);
    [status, out] = system(cmd);
    if status ~= 0
        fprintf('Skipping %s (incomplete) \n', sites{i});
@@ -82,10 +80,8 @@ for i=length(sites):-1:1
    staps = importdata('.tmp');
    
    fname = sprintf('output/%s-m-stap.csv.bz2', sites{i});
-   [status, out] = system(sprintf( ...
-       ['bash -c "bzcat %s | grep -v ''browser:''' ...
-       ' | sed -e ''s/[^0-9~]*//g'' -e ''s/~/,/g''' ...
-       ' -e ''s/,,/,-1,/g'' -e ''s/,$//''  > .tmp"'], fname));
+   cmd = sprintf( 'bash parseBzip.sh %s', fname);
+   [status, out] = system(cmd);
    if status ~= 0
        fprintf('Skipping %s (incomplete) \n', sites{i});
        sites(i) = [];
@@ -94,7 +90,7 @@ for i=length(sites):-1:1
    stapsM = importdata('.tmp');
    
    if length(conns) < 250 || length(connsM) < 250 || isempty(staps) || isempty(stapsM)
-       fprintf('Skipping %s (Odd output)\n', sites{i});
+       fprintf('Skipping %s (odd output)\n', sites{i});
        sites(i) = [];
       continue 
    end
@@ -115,6 +111,7 @@ for i=length(sites):-1:1
    allStaps = [allStaps; {staps}];
    allStapsM = [allStapsM; {stapsM}];
 end
+save parsed
 
 %% link stap indices; remove empty sites
 load stap_dim
@@ -122,12 +119,16 @@ stapTypes = length(stap_dim);
 numSites = length(allStaps);
 
 stapDataAggregated = cell(numSites, stapTypes);
+stapDataAggregatedM = cell(numSites, stapTypes);
 
 for i=1:numSites
     staps = allStaps{i};
     for j=1:stapTypes
        relevantStaps = staps(staps(:,1) == j, 2:length(stap_dim{j})+1);
        stapDataAggregated{i,j} = relevantStaps;
+       
+       relevantStapsM = stapsM(stapsM(:,1) == j, 2:length(stap_dim{j})+1);
+       stapDataAggregatedM{i,j} = relevantStapsM;
     end
 end
 
@@ -138,27 +139,120 @@ siteIndex = 1;
 stepID = 16;
 display(sites(length(sites) - siteIndex + 1));
 relevantStap = stapDataAggregated{siteIndex, stepID};
-% [process_name, PID, timestep, ..., packets, bytesSent, bytesRec]
+
 timestamps = relevantStap(:,3);
 bytesRec = relevantStap(:,end);
 bytesSent = relevantStap(:,end-1);
 plot(cumsum(bytesRec))
 
 %% plot staps (all sites)
-
-for i=1:1 % numSites
+save_figs = true;
+close all;
+mkdir('figs');
+for i=1:1
+    sitename = sites(length(sites) - i + 1);
+    mkdir(sprintf('figs/%s',sitename{:}));
     for j=1:stapTypes
        relevantStap = stapDataAggregated{i, j};
+       relevantStapM = stapDataAggregatedM{i, j};
+       % [process_name, PID, timestep, ...]
        timestamps = relevantStap(:,3);
+       timestampsM = relevantStapM(:,3);
+
+       for k=4:length(stap_dim{j})
+           feature_names = stap_dim{j};
+           stap_time_series = sortrows([timestamps relevantStap(:,k)]);
+           stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
+           subplot(2,1,1)
+           plot(stap_time_series(:,1),stap_time_series(:,2), ...
+               'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
+           hold all
+           plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
+               '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+           box off
+           ylabel(feature_names{k})
+           title(sprintf('%s -- %s', sitename{:}, feature_names{k}))
+           legend('Desktop UA' ,'Mobile UA')
+           
+           subplot(2,1,2)
+           plot(stap_time_series(:,1),cumsum(stap_time_series(:,2)), ...
+               'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
+           hold all
+           plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
+               '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+           box off
+           ylabel('Cumulative sum')
+           xlabel('Time (seconds)')
+           legend('Desktop UA' ,'Mobile UA')
+           
+           if save_figs
+               set(gcf,'PaperPositionMode','auto')
+               print(gcf,'-dpng','-r300', sprintf('figs/%s/%d.%s.png', ...
+                   sitename{:}, j, feature_names{k}))
+           end
+%            pause
+           clf('reset') 
+       end
     end
 end
+close all
 
+%% calculate aggregates
+DURATION = 150; % seconds
+BINS = 30;
 
-%%
+binduration = DURATION / BINS;
+aggDat = zeros(numSites, sum(cellfun(@length,stap_dim)), BINS);
+aggDatM = zeros(numSites, sum(cellfun(@length,stap_dim)), BINS);
 
-% unused
-% DURATION = 150; % seconds
-% BINS = 30;
+for i=1:numSites
+    fprintf('[%d of %d]\n', i, numSites)
+    stapIndex = 1;
+    for j=1:stapTypes
+        relevantStap = stapDataAggregated{i, j};
+        relevantStapM = stapDataAggregatedM{i, j};
+        timestamps = relevantStap(:,3);
+        timestampsM = relevantStapM(:,3);
+        
+        for k=1:length(stap_dim{j})
+            stapIndex = stapIndex + 1;
+            stap_time_series = sortrows([timestamps relevantStap(:,k)]);
+            stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
+            for b=1:BINS
+                binDat = stap_time_series(binduration * (b-1) <= stap_time_series(:,1) & ...
+                    stap_time_series(:,1) < (binduration * b), 2);
+                aggDat(i, stapIndex, b) = sum(binDat);
+                
+                binDatM = stap_time_seriesM(binduration * (b-1) <= stap_time_seriesM(:,1) & ...
+                    stap_time_seriesM(:,1) < (binduration * b), 2);
+                aggDatM(i, stapIndex, b) = sum(binDatM);
+            end
+        end
+    end
+end
+fprintf('Done!')
+
+%% plot aggregates
+mkdir('figs-aggregate')
+save_figs = true;
+stapIndex = 1;
+for j=1:stapTypes
+    for k=1:length(stap_dim{j})
+        stapIndex = stapIndex + 1;
+        feature_name = stap_dim{j}{k};
+
+        boxplot(squeeze(aggDat(:,stapIndex,:)))
+        title(sprintf('%d -- %s', j, feature_name))
+
+        if save_figs
+            set(gcf,'PaperPositionMode','auto');
+            print(gcf,'-dpng','-r300', sprintf('figs-aggregate/%d-%s.png', ...
+                j, feature_name))
+        end
+        clf('reset')
+    end
+end
+close all
 
 %% plot results [OLD]
 plot(allConns)
