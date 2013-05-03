@@ -1,9 +1,9 @@
 bzcat $1 | \
     sed  -e 's/JS Sour~ Thread/Sour Thread/g' \
     -e 's/Proxy R~olution/Proxy Rolution/g' \
-    > .tmp
+    > .tmp_corr
 
-bzcat $1 | grep '^17' | \
+cat .tmp_corr | grep '^17' | \
     -e s/accept/1/g \
     -e s/access/2/g \
     -e s/arch_prctl/3/g \
@@ -125,3 +125,5 @@ bzcat $1 | grep '^17' | \
     -e 's/,$//' | \
     awk -F, '{print $5","$4","$6}' \
     >> .tmp
+
+rm .tmp_corr
