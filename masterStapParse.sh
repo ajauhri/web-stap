@@ -3,9 +3,14 @@ bzcat $1 | \
     -e 's/Proxy R~olution/Proxy Rolution/g' \
     > .tmp_corr
 
+#--- page fault transformation starts here ---#
+cat .tmp_corr | grep '^3~' | \
+    awk -F'~' -v read='116' -v write='117' -v str='' '{$5==0?str=read","$4","$6 : str=write","$4","$6} {print str}' >> .tmp
+#--- page fault transformation end here ---#
+
 #--- system call transformation starts here ---#
 cat .tmp_corr | grep '^17' | \
-    -e s/accept/1/g \
+    sed -e s/accept/1/g \
     -e s/access/2/g \
     -e s/arch_prctl/3/g \
     -e s/bind/4/g \
