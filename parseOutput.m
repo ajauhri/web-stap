@@ -259,7 +259,8 @@ for i=1:numSites
     stapIndex = 1;
     for j=1:stapTypes
         relevantStap = stapDataAggregated{i, j};
-        relevantStapM = stapDataAggregatedM{i, j};
+        relevantStapM = stapDataAggregate
+        dM{i, j};
         timestamps = relevantStap(:,3);
         timestampsM = relevantStapM(:,3);
         
@@ -283,7 +284,7 @@ fprintf('Done!\n')
 
 %% plot aggregates
 mkdir('figs-aggregate')
-save_figs = true;
+save_figs = false;
 stapIndex = 1;
 for j=1:stapTypes
     for k=1:length(stap_feature_names(j))
@@ -297,11 +298,25 @@ for j=1:stapTypes
             set(gcf,'PaperPositionMode','auto');
             print(gcf,'-dpng','-r300', sprintf('figs-aggregate/%d-%s.png', ...
                 j, feature_name))
+        else
+            pause
         end
         clf('reset')
     end
 end
 close all
+
+%% plot loadtimes
+loadtimes = cell2mat(cellfun(@(c) c', allLoadtimes, 'uniformoutput', false));
+loadtimesM = cell2mat(cellfun(@(c) c', allLoadtimesM, 'uniformoutput', false));
+
+lnames = ['timeConnect','timeDomLoad', 'timeDns', 'timeRedirect', 'timeResponse'];
+
+
+
+%% setup connection matrix
+conns = cell2mat(cellfun(@(c) c(1:600,2), allConns, 'uniformoutput', false));
+connsM = cell2mat(cellfun(@(c) c(1:600,2), allConnsM, 'uniformoutput', false));
 
 %% plot results
 close all
@@ -313,51 +328,54 @@ end
 legend(sites)
 
 %% boxplots
+
 subplot(2,1,1)
-boxplot(allConns')
+boxplot(conns')
 ylabel('Connections')
 title('Desktop UA')
 subplot(2,1,2)
-boxplot(allConnsM')
+
+boxplot(connsM')
 ylabel('Connections')
 title('Mobile UA')
 
 %% means
-plot((1:250)/2,mean(allConns, 2), 'b')
+plot((1:600)/4.5,mean(conns, 2), 'b')
 hold all
-plot((1:250)/2,mean(allConnsM, 2), 'b--')
+plot((1:600)/4.5,mean(connsM, 2), 'b--')
 legend('Desktop UA', 'Mobile UA')
 ylabel('Mean connections')
 xlabel('Time (seconds)')
+axis tight
 
 %% barplot
-bar([mean(allConns); mean(allConnsM)]')
+bar([mean(conns); mean(connsM)]')
 ylabel('Mean connections')
 xlabel('Site index')
 
 %% histogram
 subplot(2,1,1)
-hist([mean(allConns)' mean(allConnsM)'], 20)
+hist([mean(conns)' mean(connsM)'], 20)
 legend('Desktop UA', 'Mobile UA')
 xlabel('Mean connections')
 subplot(2,1,2)
-hist([max(allConns)' max(allConnsM)'], 20)
+hist([max(conns)' max(connsM)'], 20)
 legend('Desktop UA', 'Mobile UA')
 xlabel('Peak connections')
 
 %% image-style
 subplot(2,1,1)
-imagesc(allConns, [0 50])
+imagesc(conns, [0 50])
 ylabel('Time')
 title('Desktop UA')
 subplot(2,1,2)
-imagesc(allConnsM, [0 50])
+imagesc(connsM, [0 50])
 ylabel('Time')
 title('Mobile UA')
 %% single site
-plot((1:250)/2, allConns(:,15))
+plot((1:600)/4.5, conns(:,15))
 hold all
-plot((1:250)/2, allConnsM(:,15),'--')
+plot((1:600)/4.5, connsM(:,15),'--')
 legend('Desktop UA', 'Mobile UA')
 ylabel('Number of Connections')
 xlabel('Time (seconds)')
