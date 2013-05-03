@@ -1,6 +1,5 @@
 %% do parsing
 clear all; close all;
-PARSE_SYSCALLS = true;
 TIMESTAMP_INDEX = 2;
 
 files = dir('output');
@@ -72,11 +71,8 @@ for i=length(sites):-1:1
    end
    
    fname = sprintf('output/%s-stap.csv.bz2', sites{i});
-   if PARSE_SYSCALLS
-       cmd = sprintf( 'bash parseStapSyscalls.sh %s', fname);
-   else
-       cmd = sprintf( 'bash parseStapAll.sh %s', fname);
-   end
+   cmd = sprintf( 'bash masterStapParse.sh %s', fname);
+   
    [status, out] = system(cmd);
    if status ~= 0
        fprintf('Skipping %s (incomplete) \n', sites{i});
@@ -86,11 +82,8 @@ for i=length(sites):-1:1
    staps = importdata('.tmp');
    
    fname = sprintf('output/%s-m-stap.csv.bz2', sites{i});
-   if PARSE_SYSCALLS
-       cmd = sprintf( 'bash parseStapSyscalls.sh %s', fname);
-   else
-       cmd = sprintf( 'bash parseStapAll.sh %s', fname);
-   end
+   cmd = sprintf( 'bash masterStapParse.sh %s', fname);
+   
    [status, out] = system(cmd);
    if status ~= 0
        fprintf('Skipping %s (incomplete) \n', sites{i});
@@ -115,8 +108,8 @@ for i=length(sites):-1:1
    stapsM(:,TIMESTAMP_INDEX) = stapsM(:,TIMESTAMP_INDEX) - startTime;
    
    % ensure we're actually looking at time
-   assert(~any(staps(:,TIMESTAMP_INDEX) > 1000))
-   assert(~any(stapsM(:,TIMESTAMP_INDEX) > 1000))
+   assert(~any(staps(:,TIMESTAMP_INDEX) > 200))
+   assert(~any(stapsM(:,TIMESTAMP_INDEX) > 200))
    
    allConns = [allConns; {conns}];
    allConnsM = [allConnsM; {connsM}];
@@ -128,13 +121,9 @@ end
 save parsed
 
 %% link stap indices; remove empty sites
-if PARSE_SYSCALLS
-    load syscallNames
-    stap_feature_names = syscallNames;
-else
-    load stap_dim
-    stap_feature_names = stap_dim;
-end
+load syscallNames
+stap_feature_names = syscallNames;
+
 assert(size(stap_feature_names,2) == 1)
 stapTypes = length(stap_feature_names);
 numSites = length(allStaps);
@@ -145,28 +134,26 @@ stapDataAggregatedM = cell(numSites, stapTypes);
 for i=1:numSites
     staps = allStaps{i};
     for j=1:stapTypes
-       relevantStaps = staps(staps(:,1) == j, 2);
+       relevantStaps = staps(staps(:,1) == j, 2:3);
        stapDataAggregated{i,j} = relevantStaps;
        
-       relevantStapsM = stapsM(stapsM(:,1) == j, 2);
+       relevantStapsM = stapsM(stapsM(:,1) == j, 2:3);
        stapDataAggregatedM{i,j} = relevantStapsM;
     end
 end
 
 %% plot staps (single site)
 siteIndex = 1;
-
-% for TCP download stap
-stapID = 16;
+stapID = 114;
 display(sites(length(sites) - siteIndex + 1));
+display(stap_feature_names(stapID))
 relevantStap = stapDataAggregated{siteIndex, stapID};
 
-timestamps = relevantStap(:,2);
-bytesRec = relevantStap(:,end);
-bytesSent = relevantStap(:,end-1);
-plot(cumsum(bytesRec))
+timestamps = relevantStap(:,1);
+feature = relevantStap(:,end);
+plot(timestamps,feature)
 
-%% plot staps (all sites)
+%% plot everything individually (all sites)
 save_figs = true;
 close all;
 mkdir('figs');
@@ -176,44 +163,40 @@ for i=1:1
     for j=1:stapTypes
        relevantStap = stapDataAggregated{i, j};
        relevantStapM = stapDataAggregatedM{i, j};
-       % [process_name, PID, timestep, ...]
-       timestamps = relevantStap(:,3);
-       timestampsM = relevantStapM(:,3);
-
-       for k=4:length(stap_feature_names{j})
-           feature_names = stap_feature_names{j};
-           stap_time_series = sortrows([timestamps relevantStap(:,k)]);
-           stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
-           subplot(2,1,1)
-           plot(stap_time_series(:,1),stap_time_series(:,2), ...
-               'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
-           hold all
-           plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
-               '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
-           box off
-           ylabel(feature_names{k})
-           title(sprintf('%s -- %s', sitename{:}, feature_names{k}))
-           legend('Desktop UA' ,'Mobile UA')
-           
-           subplot(2,1,2)
-           plot(stap_time_series(:,1),cumsum(stap_time_series(:,2)), ...
-               'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
-           hold all
-           plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
-               '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
-           box off
-           ylabel('Cumulative sum')
-           xlabel('Time (seconds)')
-           legend('Desktop UA' ,'Mobile UA')
-           
-           if save_figs
-               set(gcf,'PaperPositionMode','auto')
-               print(gcf,'-dpng','-r300', sprintf('figs/%s/%d.%s.png', ...
-                   sitename{:}, j, feature_names{k}))
-           end
-%            pause
-           clf('reset') 
+       featureName = stap_feature_names(j);
+       % relevantStap-format: [timestamp, feature]
+       
+       stap_time_series = sortrows(relevantStap);
+       stap_time_seriesM = sortrows(relevantStapM);
+       subplot(2,1,1)
+       plot(stap_time_series(:,1),stap_time_series(:,2), ...
+           'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
+       hold all
+       plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
+           '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+       box off
+       ylabel(featureName{:})
+       title(sprintf('%s -- %s', sitename{:}, featureName{:}))
+       legend('Desktop UA' ,'Mobile UA')
+       
+       subplot(2,1,2)
+       plot(stap_time_series(:,1),cumsum(stap_time_series(:,2)), ...
+           'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
+       hold all
+       plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
+           '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+       box off
+       ylabel('Cumulative sum')
+       xlabel('Time (seconds)')
+       legend('Desktop UA' ,'Mobile UA')
+       
+       if save_figs
+           set(gcf,'PaperPositionMode','auto')
+           print(gcf,'-dpng','-r300', sprintf('figs/%s/%d.%s.png', ...
+               sitename{:}, j, featureName{:}))
        end
+       pause
+       clf('reset')
     end
 end
 close all
@@ -235,7 +218,7 @@ for i=1:numSites
         timestamps = relevantStap(:,3);
         timestampsM = relevantStapM(:,3);
         
-        for k=1:length(stap_feature_names{j})
+        for k=1:length(stap_feature_names(j))
             stapIndex = stapIndex + 1;
             stap_time_series = sortrows([timestamps relevantStap(:,k)]);
             stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
@@ -258,9 +241,9 @@ mkdir('figs-aggregate')
 save_figs = true;
 stapIndex = 1;
 for j=1:stapTypes
-    for k=1:length(stap_feature_names{j})
+    for k=1:length(stap_feature_names(j))
         stapIndex = stapIndex + 1;
-        feature_name = stap_feature_names{j}{k};
+        feature_name = stap_feature_names(j){k};
 
         boxplot(squeeze(aggDat(:,stapIndex,:)))
         title(sprintf('%d -- %s', j, feature_name))
