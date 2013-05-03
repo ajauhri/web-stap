@@ -28,7 +28,7 @@ allStaps = cell(1, numSites);
 allStapsM = cell(1, numSites);
 
 tic
-parfor i=1:numSites
+for i=1:numSites
    fname = sprintf('%s/%s-conns.csv.bz2', OUTPUT_DIR, sites{i});
    fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
    
@@ -178,7 +178,7 @@ for i=1:numSites
        end
     end
 end
-save parsed
+save manual
 
 %% plot staps (single site)
 siteIndex = 1;
@@ -195,16 +195,16 @@ plot(timestamps,feature)
 save_figs = true;
 use_export_fig = false;
 close all;
-mkdir('figs');
+mkdir('figs-manual');
 tic
-for i=20:numSites
+for i=1:numSites
     sitename = sites(i);
     fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
-    mkdir(sprintf('figs/%s',sitename{:}));
+    mkdir(sprintf('figs-manual/%s',sitename{:}));
     for j=1:stapTypes
        featureName = stap_feature_names(j);
        relevantStap = stapDataAggregated{i, j};
-       relevantStapM = stapDataAggregatedM{i, j};
+%        relevantStapM = stapDataAggregatedM{i, j};
        
        if size(relevantStap,1) <= 5
           continue 
@@ -213,36 +213,36 @@ for i=20:numSites
        % relevantStap-format: [timestamp, feature]
        
        stap_time_series = sortrows(relevantStap);
-       stap_time_seriesM = sortrows(relevantStapM);
+%        stap_time_seriesM = sortrows(relevantStapM);
        subplot(2,1,1)
        plot(stap_time_series(:,1),stap_time_series(:,2), ...
            'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
        hold all
-       plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
-           '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+%        plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
+%            '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
        box off
        ylabel(featureName{:})
-       title(sprintf('%s -- %s', sitename{:}, strrep(featureName, '_', '\_'){:}))
-       legend('Desktop UA' ,'Mobile UA')
+       title(sprintf('%s -- %s', sitename{:}, cell2mat(strrep(featureName, '_', '\_'))))
+%        legend('Desktop UA' ,'Mobile UA')
        
        subplot(2,1,2)
        plot(stap_time_series(:,1),cumsum(stap_time_series(:,2)), ...
            'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
        hold all
-       plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
-           '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+%        plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
+%            '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
        box off
        ylabel('Cumulative sum')
        xlabel('Time (seconds)')
-       legend('Desktop UA' ,'Mobile UA')
+%        legend('Desktop UA' ,'Mobile UA')
        
        if save_figs
            set(gcf,'PaperPositionMode','auto')
            if use_export_fig
-                export_fig(sprintf('figs/%s/%d.%s.png', ...
+                export_fig(sprintf('figs-manual/%s/%d.%s.png', ...
                    sitename{:}, j, featureName{:}), '-r300')
            else
-               print(gcf,'-dpng','-r300', sprintf('figs/%s/%d.%s.png', ...
+               print(gcf,'-dpng','-r300', sprintf('figs-manual/%s/%d.%s.png', ...
                    sitename{:}, j, featureName{:}))
            end
        else
@@ -264,7 +264,6 @@ aggDatM = zeros(numSites, stapTypes, BINS);
 
 for i=1:numSites
     fprintf('[%d of %d]\n', i, numSites)
-    stapIndex = 1;
     for j=1:stapTypes
        relevantStap = stapDataAggregated{i, j};
        relevantStapM = stapDataAggregatedM{i, j};
@@ -275,11 +274,11 @@ for i=1:numSites
         for b=1:BINS
             binDat = stap_time_series(binduration * (b-1) <= stap_time_series(:,1) & ...
                 stap_time_series(:,1) < (binduration * b), 2);
-            aggDat(i, stapIndex, b) = sum(binDat);
+            aggDat(i, j, b) = sum(binDat);
             
             binDatM = stap_time_seriesM(binduration * (b-1) <= stap_time_seriesM(:,1) & ...
                 stap_time_seriesM(:,1) < (binduration * b), 2);
-            aggDatM(i, stapIndex, b) = sum(binDatM);
+            aggDatM(i, j, b) = sum(binDatM);
         end
         
     end
@@ -290,19 +289,22 @@ fprintf('Done!\n')
 mkdir('figs-aggregate')
 close all
 save_figs = true;
-stapIndex = 1;
 for j=1:stapTypes
     featureName = stap_feature_names(j);
     
     subplot(2,1,1)
-    boxplot(squeeze(aggDat(:,stapIndex,:)), 'plotstyle','compact','symbol', '')
+    boxplot(squeeze(aggDat(:,j,:)), 'plotstyle','compact','symbol', '')
     set(gca,'XTickLabel',{' '})
     title(strrep(featureName, '_', '\_'))
-    ylim([0 1e4])
+    axis tight
+    ylabel('Frequency (desktop)')
+%     ylim([0 1e4])
     subplot(2,1,2)
-    boxplot(squeeze(aggDatM(:,stapIndex,:)),  'plotstyle','compact','symbol', '')
+    boxplot(squeeze(aggDatM(:,j,:)),  'plotstyle','compact','symbol', '')
     set(gca,'XTickLabel',{' '})
-    ylim([0 1e4])
+%     ylim([0 1e4])
+    axis tight
+    ylabel('Frequency (mobile)')
     
     if save_figs
         set(gcf,'PaperPositionMode','auto');
@@ -334,24 +336,26 @@ for i=1:numSites
     plot(conns(:,1), conns(:,2))
     hold all
 end
-legend(sites)
+% legend(sites)
 
 %% boxplots
 
 subplot(2,1,1)
 boxplot(conns')
 ylabel('Connections')
+set(gca,'XTickLabel',{' '})
 title('Desktop UA')
 subplot(2,1,2)
 
 boxplot(connsM')
+set(gca,'XTickLabel',{' '})
 ylabel('Connections')
 title('Mobile UA')
 
 %% means
-plot((1:600)/4.5,mean(conns, 2), 'b')
+plot((1:600)/4.5,mean(conns, 2),'linewidth', 1)
 hold all
-plot((1:600)/4.5,mean(connsM, 2), 'b--')
+plot((1:600)/4.5,mean(connsM, 2), '--', 'linewidth', 1)
 legend('Desktop UA', 'Mobile UA')
 ylabel('Mean connections')
 xlabel('Time (seconds)')
@@ -391,4 +395,4 @@ xlabel('Time (seconds)')
 
 %%
 set(gcf,'PaperPositionMode','auto')
-print(gcf,'-dpng','-r300', 'out.png')
+print(gcf,'-dpng','-r300', 'heatmap.png')
