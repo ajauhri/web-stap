@@ -203,7 +203,6 @@ for i=20:numSites
     mkdir(sprintf('figs/%s',sitename{:}));
     for j=1:stapTypes
        featureName = stap_feature_names(j);
-       featureName = strrep(featureName, '_', '\_');
        relevantStap = stapDataAggregated{i, j};
        relevantStapM = stapDataAggregatedM{i, j};
        
@@ -223,7 +222,7 @@ for i=20:numSites
            '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
        box off
        ylabel(featureName{:})
-       title(sprintf('%s -- %s', sitename{:}, featureName{:}))
+       title(sprintf('%s -- %s', sitename{:}, strrep(featureName, '_', '\_'){:}))
        legend('Desktop UA' ,'Mobile UA')
        
        subplot(2,1,2)
@@ -260,58 +259,59 @@ DURATION = 150; % seconds
 BINS = 30;
 
 binduration = DURATION / BINS;
-aggDat = zeros(numSites, sum(cellfun(@length,stap_feature_names)), BINS);
-aggDatM = zeros(numSites, sum(cellfun(@length,stap_feature_names)), BINS);
+aggDat = zeros(numSites, stapTypes, BINS);
+aggDatM = zeros(numSites, stapTypes, BINS);
 
 for i=1:numSites
     fprintf('[%d of %d]\n', i, numSites)
     stapIndex = 1;
     for j=1:stapTypes
-        relevantStap = stapDataAggregated{i, j};
-        relevantStapM = stapDataAggregate
-        dM{i, j};
-        timestamps = relevantStap(:,3);
-        timestampsM = relevantStapM(:,3);
-        
-        for k=1:length(stap_feature_names(j))
-            stapIndex = stapIndex + 1;
-            stap_time_series = sortrows([timestamps relevantStap(:,k)]);
-            stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
-            for b=1:BINS
-                binDat = stap_time_series(binduration * (b-1) <= stap_time_series(:,1) & ...
-                    stap_time_series(:,1) < (binduration * b), 2);
-                aggDat(i, stapIndex, b) = sum(binDat);
-                
-                binDatM = stap_time_seriesM(binduration * (b-1) <= stap_time_seriesM(:,1) & ...
-                    stap_time_seriesM(:,1) < (binduration * b), 2);
-                aggDatM(i, stapIndex, b) = sum(binDatM);
-            end
+       relevantStap = stapDataAggregated{i, j};
+       relevantStapM = stapDataAggregatedM{i, j};
+
+       stap_time_series = sortrows(relevantStap);
+       stap_time_seriesM = sortrows(relevantStapM);
+       
+        for b=1:BINS
+            binDat = stap_time_series(binduration * (b-1) <= stap_time_series(:,1) & ...
+                stap_time_series(:,1) < (binduration * b), 2);
+            aggDat(i, stapIndex, b) = sum(binDat);
+            
+            binDatM = stap_time_seriesM(binduration * (b-1) <= stap_time_seriesM(:,1) & ...
+                stap_time_seriesM(:,1) < (binduration * b), 2);
+            aggDatM(i, stapIndex, b) = sum(binDatM);
         end
+        
     end
 end
 fprintf('Done!\n')
 
 %% plot aggregates
 mkdir('figs-aggregate')
-save_figs = false;
+close all
+save_figs = true;
 stapIndex = 1;
 for j=1:stapTypes
-    for k=1:length(stap_feature_names(j))
-        stapIndex = stapIndex + 1;
-%         feature_name = stap_feature_names(j){k};
-
-        boxplot(squeeze(aggDat(:,stapIndex,:)))
-        title(sprintf('%d -- %s', j, feature_name))
-
-        if save_figs
-            set(gcf,'PaperPositionMode','auto');
-            print(gcf,'-dpng','-r300', sprintf('figs-aggregate/%d-%s.png', ...
-                j, feature_name))
-        else
-            pause
-        end
-        clf('reset')
+    featureName = stap_feature_names(j);
+    
+    subplot(2,1,1)
+    boxplot(squeeze(aggDat(:,stapIndex,:)), 'plotstyle','compact','symbol', '')
+    set(gca,'XTickLabel',{' '})
+    title(strrep(featureName, '_', '\_'))
+    ylim([0 1e4])
+    subplot(2,1,2)
+    boxplot(squeeze(aggDatM(:,stapIndex,:)),  'plotstyle','compact','symbol', '')
+    set(gca,'XTickLabel',{' '})
+    ylim([0 1e4])
+    
+    if save_figs
+        set(gcf,'PaperPositionMode','auto');
+        print(gcf,'-dpng','-r300', sprintf('figs-aggregate/%d-%s.png', ...
+            j, featureName{:}))
+    else
+        pause
     end
+    clf('reset')
 end
 close all
 
