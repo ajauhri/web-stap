@@ -16,6 +16,25 @@ cat .tmp_corr | grep '^19~' | \
     awk -F'~' -v nw_sent='119' -v str='' '{str=nw_sent","$4","$5} {print str}' >> .tmp
 #--- nw bytes transformation ends here ---#
 
+#--- sockets transformation starts here ---#
+cat .tmp_corr | grep '^11~' | \
+    awk -F'~' -v sock_create='120' -v str='' '{str=sock_create","$4","$5} {print str}' >> .tmp
+
+cat .tmp_corr | grep '^12~' | \
+    awk -F'~' -v sock_close='121' -v str='' '{str=sock_close","$4","$5} {print str}' >> .tmp
+#--- nw bytes transformation ends here ---#
+
+#--- thread transformation starts here ---#
+cat .tmp_corr | grep '^8~' | \
+    awk -F'~' -v thread='122' -v str='' '{str=thread","$4",1"} {print str}' >> .tmp
+#--- thread transformation ends here ---#
+
+#--- context switch transformation starts here ---#
+cat .tmp_corr | grep '^5~' | \
+    awk -F'~' -v context='123' -v str='' '{str=context","$4","$7} {print str}' >> .tmp
+#--- context switch transformation ends here ---#
+
+
 #--- system call transformation starts here ---#
 cat .tmp_corr | grep '^17~' | \
     sed -e s/accept/1/g \
