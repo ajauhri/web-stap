@@ -155,8 +155,8 @@ toc
 fprintf('Done!\n')
 
 %% link stap indices
-load syscallNames
-stap_feature_names = syscallNames;
+load feature_names
+stap_feature_names = feature_names;
 
 assert(size(stap_feature_names,2) == 1)
 stapTypes = length(stap_feature_names);
@@ -180,8 +180,8 @@ for i=1:numSites
 end
 
 %% plot staps (single site)
-siteIndex = 5;
-stapID = 114;
+siteIndex = 1;
+stapID = 123;
 display(sites{siteIndex});
 display(stap_feature_names(stapID))
 relevantStap = stapDataAggregated{siteIndex, stapID};
