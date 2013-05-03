@@ -8,7 +8,7 @@ MANUAL_CRAWLING_MODE = false;
 if MANUAL_CRAWLING_MODE
     OUTPUT_DIR = 'specific_jobs';
 else
-    OUTPUT_DIR = 'output';
+    OUTPUT_DIR = 'output_corr';
 end
 
 files = dir(OUTPUT_DIR);
@@ -28,7 +28,7 @@ allStaps = cell(1, numSites);
 allStapsM = cell(1, numSites);
 
 tic
-for i=1:numSites
+parfor i=1:numSites
    fname = sprintf('%s/%s-conns.csv.bz2', OUTPUT_DIR, sites{i});
    fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
    
@@ -178,7 +178,7 @@ for i=1:numSites
        end
     end
 end
-save manual
+save output_cor
 
 %% plot staps (single site)
 siteIndex = 1;
@@ -204,7 +204,7 @@ for i=1:numSites
     for j=1:stapTypes
        featureName = stap_feature_names(j);
        relevantStap = stapDataAggregated{i, j};
-%        relevantStapM = stapDataAggregatedM{i, j};
+       relevantStapM = stapDataAggregatedM{i, j};
        
        if size(relevantStap,1) <= 5
           continue 
@@ -213,28 +213,28 @@ for i=1:numSites
        % relevantStap-format: [timestamp, feature]
        
        stap_time_series = sortrows(relevantStap);
-%        stap_time_seriesM = sortrows(relevantStapM);
+       stap_time_seriesM = sortrows(relevantStapM);
        subplot(2,1,1)
        plot(stap_time_series(:,1),stap_time_series(:,2), ...
            'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
        hold all
-%        plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
-%            '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+       plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
+           '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
        box off
        ylabel(featureName{:})
        title(sprintf('%s -- %s', sitename{:}, cell2mat(strrep(featureName, '_', '\_'))))
-%        legend('Desktop UA' ,'Mobile UA')
+       legend('Desktop UA' ,'Mobile UA')
        
        subplot(2,1,2)
        plot(stap_time_series(:,1),cumsum(stap_time_series(:,2)), ...
            'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
        hold all
-%        plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
-%            '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+       plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
+           '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
        box off
        ylabel('Cumulative sum')
        xlabel('Time (seconds)')
-%        legend('Desktop UA' ,'Mobile UA')
+       legend('Desktop UA' ,'Mobile UA')
        
        if save_figs
            set(gcf,'PaperPositionMode','auto')
@@ -285,7 +285,25 @@ for i=1:numSites
 end
 fprintf('Done!\n')
 
-%% plot aggregates
+%% plot aggregate means
+close all
+
+means = mean(squeeze(aggDat(:,119,:)/1024));
+stds = std(squeeze(aggDat(:,119,:)/1024));
+meansM = mean(squeeze(aggDatM(:,119,:)/1024));
+stdsM = std(squeeze(aggDatM(:,119,:)/1024));
+
+errorbar(1:BINS, means,stds, 'linewidth', 1)
+hold all
+errorbar(1:BINS, meansM,stdsM,'--', 'linewidth', 1)
+box off
+axis tight
+title('Network Activity (Sent)')
+ylabel('KB sent')
+xlabel('Time bin (seconds * 5)')
+legend('Desktop UA', 'Mobile UA')
+
+%% plot aggregates boxplots
 mkdir('figs-aggregate')
 close all
 save_figs = true;
@@ -395,4 +413,4 @@ xlabel('Time (seconds)')
 
 %%
 set(gcf,'PaperPositionMode','auto')
-print(gcf,'-dpng','-r300', 'heatmap.png')
+print(gcf,'-dpng','-r300', 'net-rec.png')
