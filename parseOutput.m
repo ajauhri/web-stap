@@ -1,8 +1,11 @@
 %% do parsing
 clear all; close all;
-TIMESTAMP_INDEX = 2;
+!rm -f .tmp*
 
-files = dir('output');
+TIMESTAMP_INDEX = 2;
+MANUAL_CRAWLING_MODE = true;
+OUTPUT_DIR = 'specific_jobs';
+files = dir(OUTPUT_DIR);
 sites = [];
 
 for i=3:length(files)
@@ -10,119 +13,135 @@ for i=3:length(files)
 end
 
 sites = unique(sites);
-sites = fliplr(sites);
-allConns = [];
-allConnsM = [];
-allLoadtimes = [];
-allLoadtimesM = [];
-allStaps = [];
-allStapsM = [];
+numSites = length(sites);
+allConns = cell(1, numSites);
+allConnsM = cell(1, numSites);
+allLoadtimes = cell(1, numSites);
+allLoadtimesM = cell(1, numSites);
+allStaps = cell(1, numSites);
+allStapsM = cell(1, numSites);
 
 tic
-for i=length(sites):-1:1
-   fname = sprintf('output/%s-conns.csv.bz2', sites{i});
-   fprintf('[%d of %d] %s\n', length(sites) - i + 1, ...
-       length(sites), sites{i})
+for i=1:numSites
+   fname = sprintf('%s/%s-conns.csv.bz2', OUTPUT_DIR, sites{i});
+   fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
    
-   [status, out] = system(sprintf('bzcat %s', fname));
-   if status ~= 0
-       fprintf('Skipping %s (incomplete) \n', sites{i});
-       sites(i) = [];
-       continue
+   if ~MANUAL_CRAWLING_MODE
+       [status, out] = system(sprintf('bzcat %s', fname));
+       if status ~= 0
+           fprintf('Skipping %s (incomplete) \n', sites{i});
+           continue
+       end
+       conns = str2num(out);
+
+       fname = sprintf('%s/%s-m-conns.csv.bz2', OUTPUT_DIR, sites{i});
+       [status, out] = system(sprintf('bzcat %s', fname));
+       if status ~= 0
+           fprintf('Skipping %s (incomplete) \n', sites{i});
+           continue
+       end
+       connsM = str2num(out);
+
+       fname = sprintf('%s/%s-loadtime.csv.bz2', OUTPUT_DIR, sites{i});
+       [status, out] = system(sprintf('bzcat %s', fname));
+       if status ~= 0
+           fprintf('Skipping %s (incomplete) \n', sites{i});
+           continue
+       end
+
+       % load times structure:
+       % [timeConnect,timeDomLoad, timeDns, timeRedirect, timeResponse]
+
+       loadtime = str2num(out);
+
+       fname = sprintf('%s/%s-m-loadtime.csv.bz2', OUTPUT_DIR, sites{i});
+       [status, out] = system(sprintf('bzcat %s', fname));
+       if status ~= 0
+           fprintf('Skipping %s (incomplete) \n', sites{i});
+           continue
+       end
+       loadtimeM = str2num(out);
+
+       % if dom never loaded, or if page loaded abnormally fast...
+       % TODO: fix this -- too many false positives
+       if loadtime(2) < 0 || loadtimeM(2) < 0 || ... 
+               loadtime(1) <= 0 || loadtimeM(1) <= 0
+           fprintf('Skipping %s (no page load) \n', sites{i});
+           continue
+       end
+       
+       fname = sprintf('%s/%s-m-stap.csv.bz2', OUTPUT_DIR, sites{i});
+       tmpname = sprintf('.tmp.%s', sites{i});
+       cmd = sprintf( 'bash masterStapParse.sh %s %s', fname, sites{i});
+       
+       [status, out] = system(cmd);
+       if status ~= 0
+           fprintf('Skipping %s (incomplete) \n', sites{i});
+           continue
+       end
+       stapsM = importdata(tmpname);
+       delete(tmpname)
    end
-   conns = str2num(out);
    
-   fname = sprintf('output/%s-m-conns.csv.bz2', sites{i});
-   [status, out] = system(sprintf('bzcat %s', fname));
-   if status ~= 0
-       fprintf('Skipping %s (incomplete) \n', sites{i});
-       sites(i) = [];
-       continue
-   end
-   connsM = str2num(out);
-   
-   fname = sprintf('output/%s-loadtime.csv.bz2', sites{i});
-   [status, out] = system(sprintf('bzcat %s', fname));
-   if status ~= 0
-       fprintf('Skipping %s (incomplete) \n', sites{i});
-       sites(i) = [];
-       continue
-   end
-   
-   % load times structure:
-   % [timeConnect,timeDomLoad, timeDns, timeRedirect, timeResponse]
-   
-   loadtime = str2num(out);
-   
-   fname = sprintf('output/%s-m-loadtime.csv.bz2', sites{i});
-   [status, out] = system(sprintf('bzcat %s', fname));
-   if status ~= 0
-       fprintf('Skipping %s (incomplete) \n', sites{i});
-       sites(i) = [];
-       continue
-   end
-   loadtimeM = str2num(out);
-   
-   % if dom never loaded, or if page loaded abnormally fast...
-   % TODO: fix this -- too many false positives
-   if loadtime(2) < 0 || loadtimeM(2) < 0 || ... 
-           loadtime(1) <= 0 || loadtimeM(1) <= 0
-       fprintf('Skipping %s (no page load) \n', sites{i});
-       sites(i) = [];
-       continue
-   end
-   
-   fname = sprintf('output/%s-stap.csv.bz2', sites{i});
-   cmd = sprintf( 'bash masterStapParse.sh %s', fname);
+   fname = sprintf('%s/%s-stap.csv.bz2', OUTPUT_DIR, sites{i});
+   tmpname = sprintf('.tmp.%s', sites{i});
+   cmd = sprintf( 'bash masterStapParse.sh %s %s', fname, sites{i});
    
    [status, out] = system(cmd);
    if status ~= 0
        fprintf('Skipping %s (incomplete) \n', sites{i});
-       sites(i) = [];
        continue
    end
-   staps = importdata('.tmp');
-   delete('.tmp')
+   staps = importdata(tmpname);
+   delete(tmpname)
    
-   fname = sprintf('output/%s-m-stap.csv.bz2', sites{i});
-   cmd = sprintf( 'bash masterStapParse.sh %s', fname);
-   
-   [status, out] = system(cmd);
-   if status ~= 0
-       fprintf('Skipping %s (incomplete) \n', sites{i});
-       sites(i) = [];
-       continue
-   end
-   stapsM = importdata('.tmp');
-   delete('.tmp')
-   
-   if length(conns) < 250 || length(connsM) < 250 || isempty(staps) || isempty(stapsM)
+   if ~MANUAL_CRAWLING_MODE && (length(conns) < 250 || length(connsM) < 250 || ...
+           isempty(staps) || isempty(stapsM) || ...
+           size(stapsM, 2) ~= 3 || size(stapsM, 2) ~= 3)
        fprintf('Skipping %s (odd output)\n', sites{i});
-       sites(i) = [];
       continue 
    end
-   
-   startTime = conns(1,1);
-   conns(:,1) = conns(:,1) - startTime;
-   startTime = connsM(1,1);
-   connsM(:,1) = connsM(:,1) - startTime;
+   if ~MANUAL_CRAWLING_MODE
+       startTime = conns(1,1);
+       conns(:,1) = conns(:,1) - startTime;
+       startTime = connsM(1,1);
+       connsM(:,1) = connsM(:,1) - startTime;
+       startTime = min(stapsM(:,TIMESTAMP_INDEX));
+       stapsM(:,TIMESTAMP_INDEX) = stapsM(:,TIMESTAMP_INDEX) - startTime;
+       % ensure we're actually looking at time
+       assert(~any(staps(:,TIMESTAMP_INDEX) > 200))
+       assert(~any(stapsM(:,TIMESTAMP_INDEX) > 200))
+   else
+       loadtime = [];
+       conns = [];
+       connsM = [];
+       stapsM = [];
+       loadtimeM = [];
+   end
    startTime = min(staps(:,TIMESTAMP_INDEX));
    staps(:,TIMESTAMP_INDEX) = staps(:,TIMESTAMP_INDEX) - startTime;
-   startTime = min(stapsM(:,TIMESTAMP_INDEX));
-   stapsM(:,TIMESTAMP_INDEX) = stapsM(:,TIMESTAMP_INDEX) - startTime;
    
-   % ensure we're actually looking at time
-   assert(~any(staps(:,TIMESTAMP_INDEX) > 200))
-   assert(~any(stapsM(:,TIMESTAMP_INDEX) > 200))
-   
-   allConns = [allConns; {conns}];
-   allConnsM = [allConnsM; {connsM}];
-   allLoadtimes = [allLoadtimes; loadtime];
-   allLoadtimesM = [allLoadtimesM; loadtimeM];
-   allStaps = [allStaps; {staps}];
-   allStapsM = [allStapsM; {stapsM}];
+   allConns{i} = conns;
+   allConnsM{i} = connsM;
+   allLoadtimes{i} = loadtime;
+   allLoadtimesM{i} = loadtimeM;
+   allStaps{i} = staps;
+   allStapsM{i}= stapsM;
 end
-sites = fliplr(sites);
+
+% remove failed sites
+for i=length(sites):-1:1
+    if isempty(allStaps{i})
+        sites(i) = [];
+        allConns(i) = [];
+        allConnsM(i) = [];
+        allLoadtimes(i) = [];
+        allLoadtimesM(i) = [];
+        allStaps(i) = [];
+        allStapsM(i) = [];
+    end
+end
+
 save parsed
 toc
 fprintf('Done!\n')
@@ -140,17 +159,20 @@ stapDataAggregatedM = cell(numSites, stapTypes);
 
 for i=1:numSites
     staps = allStaps{i};
+    stapsM = allStapsM{i};
     for j=1:stapTypes
        relevantStaps = staps(staps(:,1) == j, 2:3);
        stapDataAggregated{i,j} = relevantStaps;
        
-       relevantStapsM = stapsM(stapsM(:,1) == j, 2:3);
-       stapDataAggregatedM{i,j} = relevantStapsM;
+       if ~MANUAL_CRAWLING_MODE
+           relevantStapsM = stapsM(stapsM(:,1) == j, 2:3);
+           stapDataAggregatedM{i,j} = relevantStapsM;
+       end
     end
 end
 
 %% plot staps (single site)
-siteIndex = 1;
+siteIndex = 5;
 stapID = 114;
 display(sites{siteIndex});
 display(stap_feature_names(stapID))
