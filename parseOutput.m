@@ -70,12 +70,7 @@ for i=length(sites):-1:1
    end
    
    fname = sprintf('output/%s-stap.csv.bz2', sites{i});
-   cmd = sprintf( ...
-       ['bash -c "bzcat %s | grep -v ''browser:''' ...
-       ' | sed  -e ''s/JS Sour~ Thread/Sour Thread/g'' ' ...
-       '-e ''s/Proxy R~olution/Proxy Rolution/g'' -e ' ...
-       '''s/[^0-9~]*//g'' -e ''s/~/,/g''' ...
-       ' -e ''s/,,/,-1,/g'' -e ''s/,$//'' > .tmp"'], fname);
+   cmd = sprintf( 'bash parseBzip.sh %s', fname);
    [status, out] = system(cmd);
    if status ~= 0
        fprintf('Skipping %s (incomplete) \n', sites{i});
@@ -85,12 +80,7 @@ for i=length(sites):-1:1
    staps = importdata('.tmp');
    
    fname = sprintf('output/%s-m-stap.csv.bz2', sites{i});
-   cmd = sprintf( ...
-       ['bash -c "bzcat %s | grep -v ''browser:''' ...
-       ' | sed  -e ''s/JS Sour~ Thread/Sour Thread/g'' ' ...
-       '-e ''s/Proxy R~olution/Proxy Rolution/g'' -e ' ...
-       '''s/[^0-9~]*//g'' -e ''s/~/,/g''' ...
-       ' -e ''s/,,/,-1,/g'' -e ''s/,$//'' > .tmp"'], fname);
+   cmd = sprintf( 'bash parseBzip.sh %s', fname);
    [status, out] = system(cmd);
    if status ~= 0
        fprintf('Skipping %s (incomplete) \n', sites{i});
@@ -219,15 +209,15 @@ for i=1:numSites
     fprintf('[%d of %d]\n', i, numSites)
     stapIndex = 1;
     for j=1:stapTypes
-       relevantStap = stapDataAggregated{i, j};
-       relevantStapM = stapDataAggregatedM{i, j};
-       timestamps = relevantStap(:,3);
-       timestampsM = relevantStapM(:,3);
-
-       for k=1:length(stap_dim{j})
-           stapIndex = stapIndex + 1;
-           stap_time_series = sortrows([timestamps relevantStap(:,k)]);
-           stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
+        relevantStap = stapDataAggregated{i, j};
+        relevantStapM = stapDataAggregatedM{i, j};
+        timestamps = relevantStap(:,3);
+        timestampsM = relevantStapM(:,3);
+        
+        for k=1:length(stap_dim{j})
+            stapIndex = stapIndex + 1;
+            stap_time_series = sortrows([timestamps relevantStap(:,k)]);
+            stap_time_seriesM = sortrows([timestampsM relevantStapM(:,k)]);
             for b=1:BINS
                 binDat = stap_time_series(binduration * (b-1) <= stap_time_series(:,1) & ...
                     stap_time_series(:,1) < (binduration * b), 2);
@@ -237,10 +227,32 @@ for i=1:numSites
                     stap_time_seriesM(:,1) < (binduration * b), 2);
                 aggDatM(i, stapIndex, b) = sum(binDatM);
             end
-       end
+        end
     end
 end
 fprintf('Done!')
+
+%% plot aggregates
+mkdir('figs-aggregate')
+save_figs = true;
+stapIndex = 1;
+for j=1:stapTypes
+    for k=1:length(stap_dim{j})
+        stapIndex = stapIndex + 1;
+        feature_name = stap_dim{j}{k};
+
+        boxplot(squeeze(aggDat(:,stapIndex,:)))
+        title(sprintf('%d -- %s', j, feature_name))
+
+        if save_figs
+            set(gcf,'PaperPositionMode','auto');
+            print(gcf,'-dpng','-r300', sprintf('figs-aggregate/%d-%s.png', ...
+                j, feature_name))
+        end
+        clf('reset')
+    end
+end
+close all
 
 %% plot results [OLD]
 plot(allConns)
