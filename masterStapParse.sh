@@ -34,6 +34,10 @@ cat .tmp_corr.$2 | grep '^5~' | \
     awk -F'~' -v context='123' -v str='' '{str=context","$4","$7} {print str}' >> .tmp.$2
 #--- context switch transformation ends here ---#
 
+#--- async write transformation starts here ---#
+cat .tmp_corr.$2 | grep '^10~' | \
+    awk -F'~' -v async_wr='124' -v str='' '{str=async_wr","$4","$6} {print str}' >> .tmp.$2
+#--- async write transformation ends here ---#
 
 #--- system call transformation starts here ---#
 cat .tmp_corr.$2 | grep '^17~' | \
