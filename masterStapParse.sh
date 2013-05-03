@@ -6,10 +6,18 @@ bzcat $1 | \
 #--- page fault transformation starts here ---#
 cat .tmp_corr.$2 | grep '^3~' | \
     awk -F'~' -v read='116' -v write='117' -v str='' '{$5==0?str=read","$4","$6 : str=write","$4","$6} {print str}' >> .tmp.$2
-#--- page fault transformation end here ---#
+#--- page fault transformation ends here ---#
+
+#--- nw bytes transformation starts here ---#
+cat .tmp_corr.$2 | grep '^18~' | \
+    awk -F'~' -v nw_recv='118' -v str='' '{str=nw_recv","$4","$5} {print str}' >> .tmp.$2
+
+cat .tmp_corr.$2 | grep '^19~' | \
+    awk -F'~' -v nw_sent='119' -v str='' '{str=nw_sent","$4","$5} {print str}' >> .tmp.$2
+#--- nw bytes transformation ends here ---#
 
 #--- system call transformation starts here ---#
-cat .tmp_corr.$2 | grep '^17' | \
+cat .tmp_corr.$2 | grep '^17~' | \
     sed -e s/accept/1/g \
     -e s/access/2/g \
     -e s/arch_prctl/3/g \
