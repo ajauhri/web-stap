@@ -1,19 +1,19 @@
 bzcat $1 | \
     sed  -e 's/JS Sour~ Thread/Sour Thread/g' \
     -e 's/Proxy R~olution/Proxy Rolution/g' \
-    > .tmp_corr
+    > .tmp_corr.$2
 
 #--- page fault transformation starts here ---#
-cat .tmp_corr | grep '^3~' | \
-    awk -F'~' -v read='116' -v write='117' -v str='' '{$5==0?str=read","$4","$6 : str=write","$4","$6} {print str}' >> .tmp
+cat .tmp_corr.$2 | grep '^3~' | \
+    awk -F'~' -v read='116' -v write='117' -v str='' '{$5==0?str=read","$4","$6 : str=write","$4","$6} {print str}' >> .tmp.$2
 #--- page fault transformation ends here ---#
 
 #--- nw bytes transformation starts here ---#
-cat .tmp_corr | grep '^18~' | \
-    awk -F'~' -v nw_recv='118' -v str='' '{str=nw_recv","$4","$5} {print str}' >> .tmp
+cat .tmp_corr.$2 | grep '^18~' | \
+    awk -F'~' -v nw_recv='118' -v str='' '{str=nw_recv","$4","$5} {print str}' >> .tmp.$2
 
-cat .tmp_corr | grep '^19~' | \
-    awk -F'~' -v nw_sent='119' -v str='' '{str=nw_sent","$4","$5} {print str}' >> .tmp
+cat .tmp_corr.$2 | grep '^19~' | \
+    awk -F'~' -v nw_sent='119' -v str='' '{str=nw_sent","$4","$5} {print str}' >> .tmp.$2
 #--- nw bytes transformation ends here ---#
 
 #--- sockets transformation starts here ---#
@@ -36,7 +36,7 @@ cat .tmp_corr | grep '^5~' | \
 
 
 #--- system call transformation starts here ---#
-cat .tmp_corr | grep '^17~' | \
+cat .tmp_corr.$2 | grep '^17~' | \
     sed -e s/accept/1/g \
     -e s/access/2/g \
     -e s/arch_prctl/3/g \
@@ -157,6 +157,6 @@ cat .tmp_corr | grep '^17~' | \
     -e 's/,,/,-1,/g' \
     -e 's/,$//' | \
     awk -F, '{print $5","$4","$6}' \
-    >> .tmp
+    >> .tmp.$2
 #--- system call transformation ends here ---#
-rm .tmp_corr
+rm .tmp_corr.$2
