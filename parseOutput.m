@@ -127,7 +127,7 @@ save parsed
 toc
 fprintf('Done!\n')
 
-%% link stap indices; remove empty sites
+%% link stap indices
 load syscallNames
 stap_feature_names = syscallNames;
 
@@ -165,7 +165,7 @@ save_figs = true;
 close all;
 mkdir('figs');
 tic
-for i=1:numSites
+parfor i=1:numSites
     sitename = sites(i);
     fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
     mkdir(sprintf('figs/%s',sitename{:}));
