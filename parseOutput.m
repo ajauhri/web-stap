@@ -196,12 +196,12 @@ save_figs = true;
 use_export_fig = false;
 use_hgsave = true;
 close all;
-mkdir('figs-manual');
+mkdir('figs');
 tic
 for i=1:numSites
     sitename = sites(i);
     fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
-    mkdir(sprintf('figs-manual/%s',sitename{:}));
+    mkdir(sprintf('figs/%s',sitename{:}));
     for j=1:stapTypes
        featureName = stap_feature_names(j);
        relevantStap = stapDataAggregated{i, j};
@@ -218,9 +218,9 @@ for i=1:numSites
        subplot(2,1,1)
        plot(stap_time_series(:,1),stap_time_series(:,2), ...
            'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
-%        hold all
-%        plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
-%            '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+       hold all
+       plot(stap_time_seriesM(:,1),stap_time_seriesM(:,2), ...
+           '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
        box off
        ylabel(featureName{:})
        title(sprintf('%s -- %s', sitename{:}, cell2mat(strrep(featureName, '_', '\_'))))
@@ -229,9 +229,9 @@ for i=1:numSites
        subplot(2,1,2)
        plot(stap_time_series(:,1),cumsum(stap_time_series(:,2)), ...
            'Linewidth', 1, 'MarkerSize',4, 'Color', [55 126 184]/255)
-%        hold all
-%        plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
-%            '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
+       hold all
+       plot(stap_time_seriesM(:,1),cumsum(stap_time_seriesM(:,2)), ...
+           '--','Linewidth', 1, 'MarkerSize',4,'Color',[77 175 74]/255)
        box off
        ylabel('Cumulative sum')
        xlabel('Time (seconds)')
@@ -240,14 +240,14 @@ for i=1:numSites
        if save_figs
            set(gcf,'PaperPositionMode','auto')
            if use_export_fig
-                export_fig(sprintf('figs-manual/%s/%d.%s.png', ...
+                export_fig(sprintf('figs/%s/%d.%s.png', ...
                    sitename{:}, j, featureName{:}), '-r300')
            else
-               print(gcf,'-dpng','-r300', sprintf('figs-manual/%s/%d.%s.png', ...
+               print(gcf,'-dpng','-r300', sprintf('figs/%s/%d.%s.png', ...
                    sitename{:}, j, featureName{:}))
            end
            if  use_hgsave
-               hgsave(sprintf('figs-manual/%s/%d.%s.fig', ...
+               hgsave(sprintf('figs/%s/%d.%s.fig', ...
                    sitename{:}, j, featureName{:}));
            end
        else
@@ -293,20 +293,42 @@ fprintf('Done!\n')
 %% plot aggregate means
 close all
 
+subplot(2,1,1)
+
 means = mean(squeeze(aggDat(:,119,:)/1024));
 stds = std(squeeze(aggDat(:,119,:)/1024));
 meansM = mean(squeeze(aggDatM(:,119,:)/1024));
 stdsM = std(squeeze(aggDatM(:,119,:)/1024));
 
-errorbar(1:BINS, means,stds, 'linewidth', 1)
+errorbar((0:BINS-1)*binduration, means,stds, 'linewidth', 1', 'Color', [55 126 184]/255)
 hold all
-errorbar(1:BINS, meansM,stdsM,'--', 'linewidth', 1)
+errorbar((0:BINS-1)*binduration, meansM,stdsM,'--', 'linewidth', 1, 'Color', [77 175 74]/255)
 box off
 axis tight
 title('Network Activity (Sent)')
 ylabel('KB sent')
-xlabel('Time bin (seconds * 5)')
+xlabel('Time (seconds)')
 legend('Desktop UA', 'Mobile UA')
+tmp = ylim;
+ylim([0 tmp(2)])
+
+subplot(2,1,2)
+means = mean(squeeze(aggDat(:,118,:)/1024));
+stds = std(squeeze(aggDat(:,118,:)/1024));
+meansM = mean(squeeze(aggDatM(:,118,:)/1024));
+stdsM = std(squeeze(aggDatM(:,118,:)/1024));
+
+errorbar((0:BINS-1)*binduration, means,stds, 'linewidth', 1', 'Color', [55 126 184]/255)
+hold all
+errorbar((0:BINS-1)*binduration, meansM,stdsM,'--', 'linewidth', 1, 'Color', [77 175 74]/255)
+box off
+axis tight
+title('Network Activity (Received)')
+ylabel('KB received')
+xlabel('Time (seconds)')
+legend('Desktop UA', 'Mobile UA')
+tmp = ylim;
+ylim([0 tmp(2)])
 
 %% plot aggregate errorbars
 mkdir('figs-aggregate')
