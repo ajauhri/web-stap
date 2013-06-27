@@ -6,43 +6,43 @@ bzcat $1 | \
     > .tmp_corr.$2
 
 #--- page fault transformation starts here ---#
-cat .tmp_corr.$2 | grep '^3~' | \
+cat .tmp_corr.$2 | grep '^1~' | \
     awk -F'~' -v read='116' -v write='117' -v str='' '{$5==0?str=read","$4","$6 : str=write","$4","$6} {print str}' >> .tmp.$2
 #--- page fault transformation ends here ---#
 
 #--- nw bytes transformation starts here ---#
-cat .tmp_corr.$2 | grep '^18~' | \
+cat .tmp_corr.$2 | grep '^13~' | \
     awk -F'~' -v nw_recv='118' -v str='' '{str=nw_recv","$4","$5} {print str}' >> .tmp.$2
 
-cat .tmp_corr.$2 | grep '^19~' | \
+cat .tmp_corr.$2 | grep '^14~' | \
     awk -F'~' -v nw_sent='119' -v str='' '{str=nw_sent","$4","$5} {print str}' >> .tmp.$2
 #--- nw bytes transformation ends here ---#
 
 #--- sockets transformation starts here ---#
-cat .tmp_corr.$2 | grep '^11~' | \
+cat .tmp_corr.$2 | grep '^6~' | \
     awk -F'~' -v sock_create='120' -v str='' '{str=sock_create","$4","$5} {print str}' >> .tmp.$2
 
-cat .tmp_corr.$2 | grep '^12~' | \
+cat .tmp_corr.$2 | grep '^7~' | \
     awk -F'~' -v sock_close='121' -v str='' '{str=sock_close","$4","$5} {print str}' >> .tmp.$2
 #--- nw bytes transformation ends here ---#
 
 #--- thread transformation starts here ---#
-cat .tmp_corr.$2 | grep '^8~' | \
+cat .tmp_corr.$2 | grep '^3~' | \
     awk -F'~' -v thread='122' -v str='' '{str=thread","$4",1"} {print str}' >> .tmp.$2
 #--- thread transformation ends here ---#
 
 #--- context switch transformation starts here ---#
-cat .tmp_corr.$2 | grep '^5~' | \
+cat .tmp_corr.$2 | grep '^2~' | \
     awk -F'~' -v context='123' -v str='' '{str=context","$4","$7} {print str}' >> .tmp.$2
 #--- context switch transformation ends here ---#
 
 #--- async write transformation starts here ---#
-cat .tmp_corr.$2 | grep '^10~' | \
+cat .tmp_corr.$2 | grep '^5~' | \
     awk -F'~' -v async_wr='124' -v str='' '{str=async_wr","$4","$6} {print str}' >> .tmp.$2
 #--- async write transformation ends here ---#
 
 #--- system call transformation starts here ---#
-cat .tmp_corr.$2 | grep '^17~' | \
+cat .tmp_corr.$2 | grep '^12~' | \
     sed -e s/accept/1/g \
     -e s/access/2/g \
     -e s/arch_prctl/3/g \
