@@ -17,7 +17,7 @@ def main():
                 lines = f.readlines()
                 d = dict()
                 for line in lines:
-                    cols = line.split('~')
+                    cols = line.split('|')
                     d[cols[1]] = d.get(cols[1], 0) + int(cols[2])
             fname = fname.split('bz2', 1)[0] + 'pruned' 
             
