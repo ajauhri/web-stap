@@ -1,0 +1,192 @@
+global store_page_fault         //<1|name|pid|time|access_bool|freq> 1-write,0-read
+global store_context_switches   //<2|name|pid|time|prev_pid|next_pid|freq>
+global store_process_or_thread  //<3|name|pid|time|thread_id|pid>
+global store_msg_aio_read       //<4|name|pid|time|protocol|size>
+global store_msg_aio_write      //<5|name|pid|time|protocol|size>
+global store_socket_create      //<6|name|pid|time|freq>
+global store_socket_close       //<7|name|pid|time|freq>
+global store_tcp_send           //<8|name|pid|time|size>
+global store_tcp_recv           //<9|name|pid|time|size>
+global store_udp_send           //<10|name|pid|time|size>
+global store_udp_recv           //<11|name|pid|time|size>
+global store_syscalls           //<12|name|pid|time|name|freq>
+global store_nw_recv            //<13|name|pid|time|bytes_recv>
+global store_nw_sent            //<14|name|pid|time|bytes_sent>
+
+probe vm.pagefault
+{
+    if(pid() == target() || ppid() == target()) {
+        store_page_fault[execname(), pid(), gettimeofday_s(), write_access] <<< 1
+        }
+}
+
+probe scheduler.ctxswitch
+{
+    if(pid() == target() || ppid() == target()) {
+        store_context_switches[execname(), pid(), gettimeofday_s(), prev_pid, next_pid] <<< 1
+        }
+}
+
+probe kprocess.create
+{
+    if(pid() == target() || ppid() == target()) {
+        store_process_or_thread[execname(), pid(), gettimeofday_s(), new_tid, new_pid] <<< 1
+    }
+}
+
+probe socket.aio_read.return
+{
+    if(pid() == target() || ppid() == target() &&  success) {
+        store_msg_aio_read[execname(), pid(), gettimeofday_s(), protocol] <<< size
+    }
+}
+
+probe socket.aio_write.return
+{
+    if(pid() == target() || ppid() == target() && success) {
+        store_msg_aio_write[execname(), pid(), gettimeofday_s(), protocol] <<< size
+    }
+}
+
+probe socket.create.return
+{
+    if(pid() == target() || ppid() == target()) {
+        store_socket_create[execname(), pid(), gettimeofday_s()] <<< 1
+    }
+}
+ 
+probe socket.close.return
+{
+    if(pid() == target() || ppid() == target()) {
+        store_socket_close[execname(), pid(), gettimeofday_s()] <<< 1
+    }
+}
+
+probe tcp.sendmsg.return 
+{
+    if((pid() == target() || ppid() == target()) && size>0) {
+        store_tcp_send[execname(), pid(), gettimeofday_s()] <<< size
+    }
+}
+
+       
+probe tcp.recvmsg.return 
+{
+    if((pid() == target() || ppid() == target()) && size>0) {
+        store_tcp_recv[execname(), pid(), gettimeofday_s()] <<< size
+    }
+}
+
+probe udp.sendmsg.return
+{
+    if((pid() == target() || ppid() == target()) && size>0) {
+        store_udp_send[execname(), pid(), gettimeofday_s()] <<< size
+    }
+}
+
+probe udp.recvmsg.return
+{
+    if((pid() == target() || ppid() == target()) && size>0) {
+        store_udp_recv[execname(), pid(), gettimeofday_s()] <<< size
+    }
+}
+
+probe syscall.* {
+    if(pid() == target() || ppid() == target()) {
+        store_syscalls[execname(), pid(), gettimeofday_s(), name] <<< 1
+    }
+}
+
+probe socket.receive
+{
+    if(!success) next
+    if((pid() == target() || ppid() == target()) && sock_fam_num2str(family) == "INET") {
+        store_nw_recv[execname(), pid(), gettimeofday_s(), protocol] <<< size
+    }
+}
+
+probe socket.send
+{
+    if(!success) next
+    if((pid() == target() || ppid() == target()) && sock_fam_num2str(family) == "INET") {
+        store_nw_sent[execname(), pid(), gettimeofday_s(), protocol] <<< size
+    }
+}
+
+function print_all() {
+    foreach ([exec, pid, ctime, access] in store_page_fault-) {
+        printf("1|%s|%d|%lu|%d|%d|0\n", exec, pid, ctime, access, @sum(store_page_fault[exec, pid, ctime, access]))
+    }
+    delete store_page_fault
+
+    foreach ([exec, pid, ctime, prev_p, next_p] in store_context_switches-) {
+        printf("2|%s|%d|%lu|%d|%d|%d\n", exec, pid, ctime, prev_p, next_p, @sum(store_context_switches[exec, pid, ctime, prev_p, next_p]))
+    }
+    delete store_context_switches
+
+    foreach ([exec, pid, ctime, tid, pid] in store_process_or_thread-) {
+        printf("3|%s|%d|%lu|%d|%d|%d\n", exec, pid, ctime, tid, pid, @sum(store_process_or_thread[exec, pid, ctime, tid, pid]))
+    }
+    delete store_process_or_thread
+    
+    foreach ([exec, pid, ctime, protocol] in store_msg_aio_read-) {
+        printf("4|%s|%d|%lu|%s|%d|0\n", exec, pid, ctime, sock_prot_num2str(protocol), @sum(store_msg_aio_read[exec, pid, ctime, protocol]))
+    }
+    delete store_msg_aio_read
+
+    foreach ([exec, pid, ctime, protocol] in store_msg_aio_write-) {
+        printf("5|%s|%d|%lu|%s|%d|0\n", exec, pid, ctime, sock_prot_num2str(protocol), @sum(store_msg_aio_write[exec, pid, ctime, protocol]))
+    }
+    delete store_msg_aio_write
+
+    foreach ([exec, pid, ctime] in store_socket_create-) {
+        printf("6|%s|%d|%lu|%d|0|0\n", exec, pid, ctime, @sum(store_socket_create[exec, pid, ctime]))
+    }
+    delete store_socket_create
+
+    foreach ([exec, pid, ctime] in store_socket_close-) {
+        printf("7|%s|%d|%lu|%d|0|0\n", exec, pid, ctime, @sum(store_socket_close[exec, pid, ctime]))
+    }
+    delete store_socket_close
+
+    foreach ([exec, pid, ctime] in store_tcp_send-) {
+        printf("8|%s|%d|%lu|%d|0|0\n", exec, pid, ctime, @sum(store_tcp_send[exec, pid, ctime]))
+    }
+    delete store_tcp_send
+
+    foreach ([exec, pid, ctime] in store_tcp_recv-) {
+        printf("9|%s|%d|%lu|%d|0|0\n", exec, pid, ctime, @sum(store_tcp_recv[exec, pid, ctime]))
+    }
+    delete store_tcp_recv
+
+    foreach ([exec, pid, ctime] in store_udp_send-) {
+        printf("10|%s|%d|%lu|%d|0|0\n", exec, pid, ctime, @sum(store_udp_send[exec, pid, ctime]))
+    }
+    delete store_udp_send
+
+    foreach ([exec, pid, ctime] in store_udp_recv-) {
+        printf("11|%s|%d|%lu|%d|0|0\n", exec, pid, ctime, @sum(store_udp_recv[exec, pid, ctime]))
+    }
+    delete store_udp_recv
+    
+    foreach ([exec, pid, ctime, name] in store_syscalls-) {
+        printf("12|%s|%d|%lu|%s|%d|0\n", exec, pid, ctime, name, @sum(store_syscalls[exec, pid, ctime, name]) )
+    }
+    delete store_syscalls
+
+    foreach ([exec, pid, ctime, prot] in store_nw_recv) {
+            printf("13|%s|%d|%lu|%d|0|0\n", exec, pid, ctime, @sum(store_nw_recv[exec, pid, ctime, prot])) 
+    }
+    delete store_nw_recv 
+    
+    foreach ([exec, pid, ctime, prot] in store_nw_sent) {
+            printf("14|%s|%d|%lu|%d|0|0\n", exec, pid, ctime, @sum(store_nw_sent[exec, pid, ctime, prot])) 
+    }
+    delete store_nw_sent
+}
+
+
+probe timer.s(1) {
+    print_all()
+}
+
