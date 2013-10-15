@@ -16,7 +16,7 @@ MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Buil
 SECONDS_PER_SITE = 150
 MAX_SITES = 1e6
 START_INDEX = 0
-VERBOSE = False
+VERBOSE = True
 
 def main():
   if os.getuid() != 0:
@@ -48,7 +48,6 @@ def main():
         if chrome:
           site_tmp += '-chrome'
           browser = webdriver.Chrome(chrome_options=chromeOptions)
-          #sleep(3)
         else:
           site_tmp += '-firefox'
           browser = webdriver.Firefox(profile)
@@ -61,7 +60,9 @@ def main():
         sleep(5)
         cmd = '%s -G parent_id=%s -G browser_id=%s > output/%s-stap.csv' % \
             (MEASURING_SCRIPT, str(os.getpid()), str(browserPID), site_tmp)
-        print cmd
+        if VERBOSE:
+          print 'Browser PID: ' + str(browserPID)
+          print 'Running command: ' + cmd
         pStap = Popen(cmd, \
             stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
         pConn = Popen('watch -n .2 "bash measure-connections.sh >> ' \
