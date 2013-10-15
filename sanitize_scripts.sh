@@ -1,5 +1,5 @@
-# stap_output_sanitize
 #!/bin/bash
+# stap_output_sanitize
 for i in ./output/*
 do
     if (echo $i | grep stap.csv.bz2); then
