@@ -47,7 +47,11 @@ def main():
           site_tmp += '-desktop'
         if chrome:
           site_tmp += '-chrome'
-          browser = webdriver.Chrome(chrome_options=chromeOptions)
+          try:
+            browser = webdriver.Chrome(chrome_options=chromeOptions)
+          except WebDriverException as e:
+            print 'Chrome load error: ' + str(e)
+            continue
         else:
           site_tmp += '-firefox'
           browser = webdriver.Firefox(profile)
