@@ -15,7 +15,7 @@ MOBILE_UA = 'Mozilla/5.0 (Linux; U; Android 2.3.3; en-us; HTC_DesireS_S510e Buil
     'AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile'
 SECONDS_PER_SITE = 150
 MAX_SITES = 1e6
-START_INDEX = 0
+START_INDEX = 115
 VERBOSE = True
 
 def main():
@@ -47,11 +47,13 @@ def main():
           site_tmp += '-desktop'
         if chrome:
           site_tmp += '-chrome'
-          try:
-            browser = webdriver.Chrome(chrome_options=chromeOptions)
-          except WebDriverException as e:
-            print 'Chrome load error: ' + str(e)
-            continue
+          browser = None
+          while browser is None:
+            try:
+              browser = webdriver.Chrome(chrome_options=chromeOptions)
+            except WebDriverException as e:
+              print 'Chrome load error: ' + str(e)
+              sleep(5)
         else:
           site_tmp += '-firefox'
           browser = webdriver.Firefox(profile)
