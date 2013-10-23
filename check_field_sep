@@ -2,7 +2,7 @@
 # to print any lines which exceed the given number of dimensions. So far this can only exist in the executable's name, so print the second field
 # usage: $./check_field_sep ~/output3/
 path=$1
-bzcat $1/*.bz2 | awk -F'|' '{if(NF>7) print $0}' | cut -d| -f2,3 | sort | uniq
+bzcat $1/*.bz2 | awk -F'|' '{if(NF>7) print $0}' | cut -d'|' -f2,3 | sort | uniq
 
 # if on windows...
 # bash -c 'for i in output_corr/*; do bzcat $i ; done' | \
