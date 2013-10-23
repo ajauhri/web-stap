@@ -4,6 +4,7 @@ clear all; close all;
 
 TIMESTAMP_INDEX = 2;
 MANUAL_CRAWLING_MODE = false;
+BROWSER = 'firefox';
 
 if MANUAL_CRAWLING_MODE
     OUTPUT_DIR = 'specific_jobs';
@@ -29,7 +30,7 @@ allStapsM = cell(1, numSites);
 
 tic
 parfor i=1:numSites
-   fname = sprintf('%s/%s-conns.csv.bz2', OUTPUT_DIR, sites{i});
+   fname = sprintf('%s/%s-desktop-%s-conns.csv.bz2', OUTPUT_DIR, sites{i}, BROWSER);
    fprintf('[%d of %d] %s\n', i, length(sites), sites{i})
    
    if ~MANUAL_CRAWLING_MODE
@@ -40,7 +41,7 @@ parfor i=1:numSites
        end
        conns = str2num(out);
 
-       fname = sprintf('%s/%s-m-conns.csv.bz2', OUTPUT_DIR, sites{i});
+       fname = sprintf('%s/%s-mobile-%s-conns.csv.bz2', OUTPUT_DIR, sites{i}, BROWSER);
        [status, out] = system(sprintf('bzcat %s', fname));
        if status ~= 0
            fprintf('Skipping %s (incomplete) \n', sites{i});
@@ -48,7 +49,7 @@ parfor i=1:numSites
        end
        connsM = str2num(out);
 
-       fname = sprintf('%s/%s-loadtime.csv.bz2', OUTPUT_DIR, sites{i});
+       fname = sprintf('%s/%s-desktop-%s-loadtime.csv.bz2', OUTPUT_DIR, sites{i}, BROWSER);
        [status, out] = system(sprintf('bzcat %s', fname));
        if status ~= 0
            fprintf('Skipping %s (incomplete) \n', sites{i});
@@ -60,7 +61,7 @@ parfor i=1:numSites
 
        loadtime = str2num(out);
 
-       fname = sprintf('%s/%s-m-loadtime.csv.bz2', OUTPUT_DIR, sites{i});
+       fname = sprintf('%s/%s-mobile-%s-loadtime.csv.bz2', OUTPUT_DIR, sites{i}, BROWSER);
        [status, out] = system(sprintf('bzcat %s', fname));
        if status ~= 0
            fprintf('Skipping %s (incomplete) \n', sites{i});
@@ -76,7 +77,7 @@ parfor i=1:numSites
            continue
        end
        
-       fname = sprintf('%s/%s-m-stap.csv.bz2', OUTPUT_DIR, sites{i});
+       fname = sprintf('%s/%s-mobile-%s-stap.csv.bz2', OUTPUT_DIR, sites{i}, BROWSER);
        tmpname = sprintf('.tmp.%s', sites{i});
        cmd = sprintf( 'bash masterStapParse.sh %s %s', fname, sites{i});
        
@@ -89,7 +90,7 @@ parfor i=1:numSites
        delete(tmpname)
    end
    
-   fname = sprintf('%s/%s-stap.csv.bz2', OUTPUT_DIR, sites{i});
+   fname = sprintf('%s/%s-desktop-%s-stap.csv.bz2', OUTPUT_DIR, sites{i}, BROWSER);
    tmpname = sprintf('.tmp.%s', sites{i});
    cmd = sprintf( 'bash masterStapParse.sh %s %s', fname, sites{i});
    
@@ -149,12 +150,14 @@ for i=length(sites):-1:1
         allStapsM(i) = [];
     end
 end
+failedSites = numSites - length(sites);
 numSites = length(sites);
 
 toc
-fprintf('Done!\n')
+fprintf('Done! %d sites parsed successfully, %d failed.\n', numSites, failedSites)
 
-% link stap indices
+%% link stap indices
+fprintf('Extracting features using feature_names...\n')
 load feature_names
 stap_feature_names = feature_names;
 
@@ -177,19 +180,25 @@ for i=1:numSites
            stapDataAggregatedM{i,j} = relevantStapsM;
        end
     end
+    if round(mod(i, numSites / 20)) == 0
+      fprintf('%.2f%% [%d of %d] \n', i/numSites*100,i,numSites)
+    end
 end
+fprintf('Saving output...\n')
 save output
 
 %% plot staps (single site)
 siteIndex = 1;
 stapID = 123;
-display(sites{siteIndex});
-display(stap_feature_names(stapID))
 relevantStap = stapDataAggregated{siteIndex, stapID};
 
 timestamps = relevantStap(:,1);
 feature = relevantStap(:,end);
 plot(timestamps,feature)
+title(sites{siteIndex});
+ylabel(strrep(stap_feature_names(stapID), '_', '\_'))
+xlabel('Time (sec)')
+axis tight
 
 %% plot everything individually (all sites)
 save_figs = true;
