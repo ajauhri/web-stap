@@ -485,9 +485,6 @@ ylabel('Number of Connections')
 xlabel('Time (seconds)')
 
 %%
-set(gcf,'PaperPositionMode','auto')
-print(gcf,'-dpng','-r300', 'all-conns-hist.png')
-%%
 %%
 %% BROWSER SPECIFIC PLOTTING
 %%    ASSUMES: firefox, chrome structs
@@ -535,19 +532,27 @@ fprintf('-- %s (%s) --\n', stap_feature_names{stapID_FF}, site)
 fprintf('Total Chrome network: %.2fMB\n', totalSyscallsChrome / 1024 / 1024)
 fprintf('Total Firefox network: %.2fMB\n\n', totalSyscallsFirefox / 1024 / 1024)
 
-%% total syscalls
+%% plot total syscalls
 % aggDat = [site,syscall,timestep]
 close all
 
 v2struct(chrome)
-totalSyscallsChrome = sum(mean((sum(aggDat,2)),1)); % mean per site
-plot(squeeze(mean((sum(aggDat,2)),1)))
+aggDatOnlySyscalls = aggDat(:,1:115,:);
+
+totalSyscallsChrome = sum(mean((sum(aggDatOnlySyscalls,2)),1)); % mean per site
+plot((0:BINS-1)*binduration, squeeze(mean((sum(aggDatOnlySyscalls,2)),1)), ...
+    'linewidth', 1, 'Color', [69 117 180]/255)
 
 v2struct(firefox)
-totalSyscallsFirefox = sum(mean((sum(aggDat,2)),1)); % mean per site
+aggDatOnlySyscalls = aggDat(:,1:115,:);
+totalSyscallsFirefox = sum(mean((sum(aggDatOnlySyscalls,2)),1)); % mean per site
 hold all
-plot(squeeze(mean((sum(aggDat,2)),1)))
+plot((0:BINS-1)*binduration, squeeze(mean((sum(aggDatOnlySyscalls,2)),1)), ...
+    '--', 'linewidth', 1, 'Color', [215 48 39]/255)
 legend('Chrome', 'Firefox')
+ylabel('Mean number of system calls')
+xlabel('Time (sec)')
+box off
 
 fprintf('Total Chrome syscalls: %d\n', totalSyscallsChrome)
 fprintf('Total Firefox syscalls: %d\n', totalSyscallsFirefox)
@@ -572,3 +577,7 @@ legend('Chrome', 'Chrome-mobile','Firefox', 'Firefox-mobile')
 ylabel('Mean connections')
 xlabel('Time (seconds)')
 axis tight
+
+%%
+set(gcf,'PaperPositionMode','auto')
+print(gcf,'-dpng','-r300', 'browser-syscalls.png')
