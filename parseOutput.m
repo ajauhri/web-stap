@@ -508,14 +508,6 @@ timestamps = relevantStap(:,1);
 feature = relevantStap(:,end);
 totalSyscallsFirefox = sum(feature);
 
-% timestampsPruned = unique(timestamps);
-% featuresPruned = zeros(1,length(timestampsPruned));
-% for i=1:length(timestampsPruned)
-%   featuresPruned(i) = feature(find(timestamps == timestampsPruned(i), 1));
-% end
-% feature = featuresPruned;
-% timestamps = timestampsPruned;
-
 plot(timestamps,feature)
 title(strcat(site, ' -- firefox'));
 ylabel(strrep(stap_feature_names(stapID_FF), '_', '\_'))
@@ -532,14 +524,6 @@ relevantStap = stapDataAggregated{siteIndex, stapID_FF};
 timestamps = relevantStap(:,1);
 feature = relevantStap(:,end);
 totalSyscallsChrome = sum(feature);
-
-% timestampsPruned = unique(timestamps);
-% featuresPruned = zeros(1,length(timestampsPruned));
-% for i=1:length(timestampsPruned)
-%   featuresPruned(i) = feature(find(timestamps == timestampsPruned(i), 1));
-% end
-% feature = featuresPruned;
-% timestamps = timestampsPruned;
 
 plot(timestamps,feature)
 title(strcat(site, ' -- chrome'));
