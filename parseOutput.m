@@ -188,7 +188,7 @@ fprintf('Saving output...\n')
 save output
 
 %% plot staps (single site)
-siteIndex = length(sites) - 14;
+siteIndex = length(sites) - 17;
 stapID = 119;
 relevantStap = stapDataAggregated{siteIndex, stapID};
 
@@ -501,14 +501,24 @@ subplot(1,2,1)
 v2struct(firefox)
 siteIndex = find(strcmp(sites, site));
 assert(siteIndex > 0)
-stapID = 119;
-relevantStap = stapDataAggregated{siteIndex, stapID};
+stapID_FF = 118;
+relevantStap = stapDataAggregated{siteIndex, stapID_FF};
 
 timestamps = relevantStap(:,1);
 feature = relevantStap(:,end);
+totalSyscallsFirefox = sum(feature);
+
+% timestampsPruned = unique(timestamps);
+% featuresPruned = zeros(1,length(timestampsPruned));
+% for i=1:length(timestampsPruned)
+%   featuresPruned(i) = feature(find(timestamps == timestampsPruned(i), 1));
+% end
+% feature = featuresPruned;
+% timestamps = timestampsPruned;
+
 plot(timestamps,feature)
 title(strcat(site, ' -- firefox'));
-ylabel(strrep(stap_feature_names(stapID), '_', '\_'))
+ylabel(strrep(stap_feature_names(stapID_FF), '_', '\_'))
 xlabel('Time (sec)')
 axis tight
 
@@ -516,16 +526,30 @@ subplot(1,2,2)
 v2struct(chrome)
 siteIndex = find(strcmp(sites, site));
 assert(siteIndex > 0)
-stapID = 119;
-relevantStap = stapDataAggregated{siteIndex, stapID};
+
+relevantStap = stapDataAggregated{siteIndex, stapID_FF};
 
 timestamps = relevantStap(:,1);
 feature = relevantStap(:,end);
+totalSyscallsChrome = sum(feature);
+
+% timestampsPruned = unique(timestamps);
+% featuresPruned = zeros(1,length(timestampsPruned));
+% for i=1:length(timestampsPruned)
+%   featuresPruned(i) = feature(find(timestamps == timestampsPruned(i), 1));
+% end
+% feature = featuresPruned;
+% timestamps = timestampsPruned;
+
 plot(timestamps,feature)
 title(strcat(site, ' -- chrome'));
-ylabel(strrep(stap_feature_names(stapID), '_', '\_'))
+ylabel(strrep(stap_feature_names(stapID_FF), '_', '\_'))
 xlabel('Time (sec)')
 axis tight
+
+fprintf('-- %s (%s) --\n', stap_feature_names{stapID_FF}, site)
+fprintf('Total Chrome network: %.2fMB\n', totalSyscallsChrome / 1024 / 1024)
+fprintf('Total Firefox network: %.2fMB\n\n', totalSyscallsFirefox / 1024 / 1024)
 
 %% total syscalls
 % aggDat = [site,syscall,timestep]
