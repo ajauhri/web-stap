@@ -4,7 +4,7 @@ clear all; close all;
 
 TIMESTAMP_INDEX = 2;
 MANUAL_CRAWLING_MODE = false;
-BROWSER = 'firefox';
+BROWSER = 'chrome';
 
 if MANUAL_CRAWLING_MODE
     OUTPUT_DIR = 'specific_jobs';
@@ -188,8 +188,8 @@ fprintf('Saving output...\n')
 save output
 
 %% plot staps (single site)
-siteIndex = 1;
-stapID = 123;
+siteIndex = length(sites) - 17;
+stapID = 119;
 relevantStap = stapDataAggregated{siteIndex, stapID};
 
 timestamps = relevantStap(:,1);
@@ -300,7 +300,7 @@ end
 fprintf('Done!\n')
 
 %% plot aggregate means
-close all
+% close all
 
 subplot(2,1,1)
 
@@ -415,11 +415,9 @@ loadtimesM = cell2mat(cellfun(@(c) c', allLoadtimesM, 'uniformoutput', false));
 
 lnames = ['timeConnect','timeDomLoad', 'timeDns', 'timeRedirect', 'timeResponse'];
 
-
-
 %% setup connection matrix
-conns = cell2mat(cellfun(@(c) c(1:600,2), allConns, 'uniformoutput', false));
-connsM = cell2mat(cellfun(@(c) c(1:600,2), allConnsM, 'uniformoutput', false));
+conns = cell2mat(cellfun(@(c) c(1:500,2), allConns, 'uniformoutput', false));
+connsM = cell2mat(cellfun(@(c) c(1:500,2), allConnsM, 'uniformoutput', false));
 
 %% plot results
 close all
@@ -445,9 +443,9 @@ ylabel('Connections')
 title('Mobile UA')
 
 %% means
-plot((1:600)/4.5,mean(conns, 2),'linewidth', 1)
+plot((1:size(conns,1))/4.5,mean(conns, 2),'linewidth', 1)
 hold all
-plot((1:600)/4.5,mean(connsM, 2), '--', 'linewidth', 1)
+plot((1:size(conns,1))/4.5,mean(connsM, 2), '--', 'linewidth', 1)
 legend('Desktop UA', 'Mobile UA')
 ylabel('Mean connections')
 xlabel('Time (seconds)')
@@ -477,6 +475,7 @@ subplot(2,1,2)
 imagesc(connsM, [0 50])
 ylabel('Time')
 title('Mobile UA')
+
 %% single site
 plot((1:600)/4.5, conns(:,15))
 hold all
@@ -486,5 +485,99 @@ ylabel('Number of Connections')
 xlabel('Time (seconds)')
 
 %%
+%%
+%% BROWSER SPECIFIC PLOTTING
+%%    ASSUMES: firefox, chrome structs
+%%
+%%
+%% plot staps (single site), specific site
+close all
+site = 'ebay.com';
+
+subplot(1,2,1)
+v2struct(firefox)
+siteIndex = find(strcmp(sites, site));
+assert(siteIndex > 0)
+stapID_FF = 118;
+relevantStap = stapDataAggregated{siteIndex, stapID_FF};
+
+timestamps = relevantStap(:,1);
+feature = relevantStap(:,end);
+totalSyscallsFirefox = sum(feature);
+
+plot(timestamps,feature)
+title(strcat(site, ' -- firefox'));
+ylabel(strrep(stap_feature_names(stapID_FF), '_', '\_'))
+xlabel('Time (sec)')
+axis tight
+
+subplot(1,2,2)
+v2struct(chrome)
+siteIndex = find(strcmp(sites, site));
+assert(siteIndex > 0)
+
+relevantStap = stapDataAggregated{siteIndex, stapID_FF};
+
+timestamps = relevantStap(:,1);
+feature = relevantStap(:,end);
+totalSyscallsChrome = sum(feature);
+
+plot(timestamps,feature)
+title(strcat(site, ' -- chrome'));
+ylabel(strrep(stap_feature_names(stapID_FF), '_', '\_'))
+xlabel('Time (sec)')
+axis tight
+
+fprintf('-- %s (%s) --\n', stap_feature_names{stapID_FF}, site)
+fprintf('Total Chrome network: %.2fMB\n', totalSyscallsChrome / 1024 / 1024)
+fprintf('Total Firefox network: %.2fMB\n\n', totalSyscallsFirefox / 1024 / 1024)
+
+%% plot total syscalls
+% aggDat = [site,syscall,timestep]
+close all
+
+v2struct(chrome)
+aggDatOnlySyscalls = aggDat(:,1:115,:);
+
+totalSyscallsChrome = sum(mean((sum(aggDatOnlySyscalls,2)),1)); % mean per site
+plot((0:BINS-1)*binduration, squeeze(mean((sum(aggDatOnlySyscalls,2)),1)), ...
+    'linewidth', 1, 'Color', [69 117 180]/255)
+
+v2struct(firefox)
+aggDatOnlySyscalls = aggDat(:,1:115,:);
+totalSyscallsFirefox = sum(mean((sum(aggDatOnlySyscalls,2)),1)); % mean per site
+hold all
+plot((0:BINS-1)*binduration, squeeze(mean((sum(aggDatOnlySyscalls,2)),1)), ...
+    '--', 'linewidth', 1, 'Color', [215 48 39]/255)
+legend('Chrome', 'Firefox')
+ylabel('Mean number of system calls')
+xlabel('Time (sec)')
+box off
+
+fprintf('Total Chrome syscalls: %d\n', totalSyscallsChrome)
+fprintf('Total Firefox syscalls: %d\n', totalSyscallsFirefox)
+
+%% number of connections
+close all
+figure; hold all;
+
+v2struct(chrome)
+conns = cell2mat(cellfun(@(c) c(1:500,2), allConns, 'uniformoutput', false));
+connsM = cell2mat(cellfun(@(c) c(1:500,2), allConnsM, 'uniformoutput', false));
+plot((1:size(conns,1))/4.5,mean(conns, 2),'linewidth', 1)
+plot((1:size(connsM,1))/4.5,mean(connsM, 2),'--', 'linewidth', 1)
+
+v2struct(firefox)
+conns = cell2mat(cellfun(@(c) c(1:500,2), allConns, 'uniformoutput', false));
+connsM = cell2mat(cellfun(@(c) c(1:500,2), allConnsM, 'uniformoutput', false));
+hold all
+plot((1:size(conns,1))/4.5,mean(conns, 2), 'linewidth', 1)
+plot((1:size(connsM,1))/4.5,mean(connsM, 2),'--', 'linewidth', 1)
+legend('Chrome', 'Chrome-mobile','Firefox', 'Firefox-mobile')
+ylabel('Mean connections')
+xlabel('Time (seconds)')
+axis tight
+
+%%
 set(gcf,'PaperPositionMode','auto')
-print(gcf,'-dpng','-r300', 'all-conns-hist.png')
+print(gcf,'-dpng','-r300', 'browser-syscalls.png')
